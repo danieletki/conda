@@ -9,6 +9,7 @@ Developer guide
    architecture
    contributing
    development-environment
+   ble-penetration
    deep-dives/index
    writing-tests/index
    deprecations
