@@ -1,0 +1,15 @@
+# Example BLE pentest configuration
+
+targets:
+  - name: "demo-device"
+    address: "AA:BB:CC:DD:EE:FF"
+
+credentials:
+  pin: "0000"
+
+attacks:
+  noop: true
+  echo_targets: true
+
+# Optional: additional Python modules that expose BleAttackTest subclasses.
+attack_modules: []
