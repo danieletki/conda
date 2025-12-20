@@ -148,6 +148,20 @@ class Lottery(models.Model):
         return f"data:image/jpeg;base64,{encoded}"
 
     @property
+    def image_2_data_uri(self):
+        if not self.image_2:
+            return None
+        encoded = base64.b64encode(self.image_2).decode('ascii')
+        return f"data:image/jpeg;base64,{encoded}"
+
+    @property
+    def image_3_data_uri(self):
+        if not self.image_3:
+            return None
+        encoded = base64.b64encode(self.image_3).decode('ascii')
+        return f"data:image/jpeg;base64,{encoded}"
+
+    @property
     def is_sold_out(self):
         return self.tickets_sold >= self.items_count
     

@@ -1,23 +1,340 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load lottery_extras %}
 
-{% block title %}Acquista Biglietti - MercatoPro{% endblock %}
+{% block title %}Acquista Biglietti - {{ lottery.title }} - MercatoPro{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-6">
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lotteries:list' %}">Lotterie</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lotteries:detail' lottery.id %}">{{ lottery.title|truncatechars:30 }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Acquisto</li>
+        </ol>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {% if message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="fas fa-check-circle me-2"></i>
+                {% else %}
+                    <i class="fas fa-info-circle me-2"></i>
+                {% endif %}
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Order Summary -->
+        <div class="col-12 col-lg-5">
             <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <h1 class="h4 fw-bold mb-2">Acquisto biglietti</h1>
-                    <p class="text-muted mb-4">
-                        Funzionalità in arrivo. A breve potrai acquistare biglietti direttamente da questa pagina.
-                    </p>
-                    <a class="btn btn-outline-secondary" href="{{ lottery.get_absolute_url }}">
-                        <i class="fas fa-arrow-left me-2"></i>Torna ai dettagli
-                    </a>
+                <div class="card-body">
+                    <h1 class="h4 fw-bold mb-3">
+                        <i class="fas fa-shopping-cart me-2"></i>Riepilogo Ordine
+                    </h1>
+                    
+                    <!-- Lottery Info -->
+                    <div class="d-flex mb-4">
+                        <div class="me-3">
+                            {% if lottery.image_1 %}
+                                <img src="{{ lottery.main_image_data_uri }}" alt="{{ lottery.title }}" class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-image text-white"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 fw-bold">{{ lottery.title }}</h6>
+                            <p class="text-muted small mb-1">{{ lottery.description|truncatechars:100 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">Venduto da: <strong>{{ lottery.seller.username }}</strong></span>
+                                {% if lottery.seller.is_verified %}
+                                    <span class="badge bg-success badge-sm">
+                                        <i class="fas fa-check-circle me-1"></i>Verificato
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Quantity Selector -->
+                    <form method="post" id="ticketForm">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-ticket-alt me-2"></i>Numero di biglietti
+                            </label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" id="decreaseBtn">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="form-control text-center" 
+                                       id="ticketCount" name="ticket_count" 
+                                       value="1" min="1" max="{{ lottery.tickets_remaining }}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="increaseBtn">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                Disponibili: <span id="availableTickets">{{ lottery.tickets_remaining }}</span> biglietti
+                            </small>
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="border-top pt-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Prezzo per biglietto:</span>
+                                <span id="unitPrice">€{{ lottery.ticket_price }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Numero biglietti:</span>
+                                <span id="ticketQuantity">1</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between mb-3 fs-5 fw-bold">
+                                <span>Totale:</span>
+                                <span id="totalPrice" class="text-primary">€{{ lottery.ticket_price }}</span>
+                            </div>
+                            
+                            <!-- Low stock warning -->
+                            {% if lottery.tickets_remaining <= 10 %}
+                                <div class="alert alert-warning alert-sm py-2 mb-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <small>Solo {{ lottery.tickets_remaining }} biglietti rimasti!</small>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Purchase Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="purchaseBtn">
+                                <i class="fab fa-paypal me-2"></i>
+                                <span id="buttonText">Paga con PayPal</span>
+                                <div class="spinner-border spinner-border-sm ms-2 d-none" id="loadingSpinner" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Security info -->
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-lock me-1"></i>
+                                Pagamento sicuro con PayPal
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Info & Details -->
+        <div class="col-12 col-lg-7">
+            <div class="row g-4">
+                <!-- Security Features -->
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="fas fa-shield-alt me-2"></i>Garanzie di Sicurezza
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-lock fa-2x text-success mb-2"></i>
+                                        <h6>Transazioni Sicure</h6>
+                                        <small class="text-muted">Crittografia SSL a 256 bit</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-undo fa-2x text-success mb-2"></i>
+                                        <h6>Rimborso Garantito</h6>
+                                        <small class="text-muted">Se la lotteria viene cancellata</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-user-shield fa-2x text-success mb-2"></i>
+                                        <h6>Venditori Verificati</h6>
+                                        <small class="text-muted">Solo venditori con KYC approvato</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lottery Details -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-info-circle me-2"></i>Dettagli Lotteria
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="text-muted small">Valore del Premio</div>
+                                        <div class="fs-5 fw-bold text-primary">€{{ lottery.item_value }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="text-muted small">Biglietti Totali</div>
+                                        <div class="fs-5 fw-bold">{{ lottery.items_count|intcomma }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="text-muted small">Biglietti Venduti</div>
+                                        <div class="fs-5 fw-bold text-success">{{ lottery.tickets_sold|intcomma }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="text-muted small">Biglietti Rimanenti</div>
+                                        <div class="fs-5 fw-bold {% if lottery.tickets_remaining <= 5 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ lottery.tickets_remaining|intcomma }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress bar -->
+                            <div class="mt-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="small fw-bold">Progresso vendite</span>
+                                    <span class="small">{{ lottery.progress_percent }}%</span>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar progress-bar-striped" 
+                                         role="progressbar" style="width: {{ lottery.progress_percent }}%" 
+                                         aria-valuenow="{{ lottery.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expiration -->
+                            {% if lottery.expiration_date %}
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <strong>Scadenza:</strong> {{ lottery.expiration_date|date:"d/m/Y H:i" }}
+                                        ({{ lottery.expiration_date|timeuntil }} rimanenti)
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Back Button -->
+                <div class="col-12">
+                    <div class="d-grid">
+                        <a href="{% url 'lotteries:detail' lottery.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Torna ai dettagli
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ticketCountInput = document.getElementById('ticketCount');
+        const decreaseBtn = document.getElementById('decreaseBtn');
+        const increaseBtn = document.getElementById('increaseBtn');
+        const totalPriceSpan = document.getElementById('totalPrice');
+        const ticketQuantitySpan = document.getElementById('ticketQuantity');
+        const purchaseBtn = document.getElementById('purchaseBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        const ticketForm = document.getElementById('ticketForm');
+        
+        const unitPrice = parseFloat('{{ lottery.ticket_price }}');
+        const maxTickets = parseInt('{{ lottery.tickets_remaining }}');
+        let currentCount = 1;
+
+        function updatePrice() {
+            const total = (unitPrice * currentCount).toFixed(2);
+            totalPriceSpan.textContent = `€${total}`;
+            ticketQuantitySpan.textContent = currentCount;
+            
+            // Update button text with total
+            buttonText.textContent = `Paga €${total} con PayPal`;
+        }
+
+        function updateButtonState() {
+            if (currentCount >= maxTickets) {
+                increaseBtn.disabled = true;
+                increaseBtn.classList.add('disabled');
+            } else {
+                increaseBtn.disabled = false;
+                increaseBtn.classList.remove('disabled');
+            }
+            
+            if (currentCount <= 1) {
+                decreaseBtn.disabled = true;
+                decreaseBtn.classList.add('disabled');
+            } else {
+                decreaseBtn.disabled = false;
+                decreaseBtn.classList.remove('disabled');
+            }
+        }
+
+        decreaseBtn.addEventListener('click', function() {
+            if (currentCount > 1) {
+                currentCount--;
+                ticketCountInput.value = currentCount;
+                updatePrice();
+                updateButtonState();
+            }
+        });
+
+        increaseBtn.addEventListener('click', function() {
+            if (currentCount < maxTickets) {
+                currentCount++;
+                ticketCountInput.value = currentCount;
+                updatePrice();
+                updateButtonState();
+            }
+        });
+
+        ticketForm.addEventListener('submit', function() {
+            purchaseBtn.disabled = true;
+            loadingSpinner.classList.remove('d-none');
+            buttonText.textContent = 'Creazione ordine...';
+        });
+
+        // Initialize
+        updatePrice();
+        updateButtonState();
+
+        // Auto-hide alerts
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                if (alert.classList.contains('show')) {
+                    alert.classList.remove('show');
+                }
+            });
+        }, 5000);
+    });
+</script>
+{% endblock %}
 {% endblock %}

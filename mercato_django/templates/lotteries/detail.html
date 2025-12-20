@@ -1,79 +1,264 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
+{% load lottery_extras %}
 
 {% block title %}{{ lottery.title }} - MercatoPro{% endblock %}
 
 {% block content %}
 <div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lotteries:list' %}">Lotterie</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ lottery.title|truncatechars:50 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Low ticket warning -->
+    {% if low_ticket_warning %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Ultimi {{ lottery.tickets_remaining }} biglietti!</strong> Non perdere l'opportunità di vincere questo fantastico premio.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
     <div class="row g-4">
+        <!-- Image Gallery -->
         <div class="col-12 col-lg-6">
             <div class="card shadow-sm">
-                {% if lottery.main_image_data_uri %}
-                    <img src="{{ lottery.main_image_data_uri }}" class="card-img-top" alt="{{ lottery.title }}">
-                {% else %}
-                    <img src="{% static 'img/lottery-placeholder.svg' %}" class="card-img-top" alt="{{ lottery.title }}">
-                {% endif %}
+                <div id="lotteryCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#lotteryCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Immagine 1"></button>
+                        {% if lottery.image_2 %}
+                            <button type="button" data-bs-target="#lotteryCarousel" data-bs-slide-to="1" aria-label="Immagine 2"></button>
+                        {% endif %}
+                        {% if lottery.image_3 %}
+                            <button type="button" data-bs-target="#lotteryCarousel" data-bs-slide-to="2" aria-label="Immagine 3"></button>
+                        {% endif %}
+                    </div>
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            {% if lottery.image_1 %}
+                                <img src="{{ lottery.main_image_data_uri }}" class="d-block w-100" alt="{{ lottery.image_1_description|default:lottery.title }}" style="height: 400px; object-fit: cover;">
+                            {% else %}
+                                <img src="{% static 'img/lottery-placeholder.svg' %}" class="d-block w-100" alt="{{ lottery.title }}" style="height: 400px; object-fit: cover;">
+                            {% endif %}
+                        </div>
+                        {% if lottery.image_2 %}
+                            <div class="carousel-item">
+                                {% if lottery.image_2_data_uri %}
+                                    <img src="{{ lottery.image_2_data_uri }}" class="d-block w-100" alt="{{ lottery.image_2_description|default:lottery.title }}" style="height: 400px; object-fit: cover;">
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        {% if lottery.image_3 %}
+                            <div class="carousel-item">
+                                {% if lottery.image_3_data_uri %}
+                                    <img src="{{ lottery.image_3_data_uri }}" class="d-block w-100" alt="{{ lottery.image_3_description|default:lottery.title }}" style="height: 400px; object-fit: cover;">
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if lottery.image_2 or lottery.image_3 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#lotteryCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Precedente</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#lotteryCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Successivo</span>
+                        </button>
+                    {% endif %}
+                </div>
                 <div class="card-body">
                     <h1 class="h3 fw-bold mb-2">{{ lottery.title }}</h1>
-                    <p class="text-muted mb-0">{{ lottery.description }}</p>
+                    <p class="text-muted mb-0">{{ lottery.description|linebreaks }}</p>
                 </div>
             </div>
         </div>
 
+        <!-- Lottery Details & Purchase -->
         <div class="col-12 col-lg-6">
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <h2 class="h5 fw-bold mb-3">Dettagli</h2>
+                    <!-- Seller Info -->
+                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="me-3">
+                            {% if seller_profile and seller_profile.profile_image %}
+                                <img src="{{ seller_profile.profile_image.url }}" alt="{{ lottery.seller.username }}" class="rounded-circle" width="48" height="48">
+                            {% else %}
+                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ lottery.seller.username }}</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2">
+                                    <span class="text-warning">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= seller_rating|floatformat:0|add:"0" %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                    <small class="text-muted">({{ seller_rating }}/5)</small>
+                                </div>
+                                {% if lottery.seller.is_verified %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Verificato
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ seller_total_sales }} vendite completate</small>
+                        </div>
+                    </div>
 
-                    <div class="row g-3">
+                    <!-- Price & Availability -->
+                    <div class="row g-3 mb-4">
                         <div class="col-6">
                             <div class="small text-muted">Prezzo biglietto</div>
-                            <div class="fs-4 fw-bold">€{{ lottery.ticket_price }}</div>
+                            <div class="fs-4 fw-bold text-primary">€{{ lottery.ticket_price }}</div>
                         </div>
                         <div class="col-6 text-end">
                             <div class="small text-muted">Biglietti rimanenti</div>
-                            <div class="fs-4 fw-bold">{{ lottery.tickets_remaining }}</div>
+                            <div class="fs-4 fw-bold {% if lottery.tickets_remaining <= 5 %}text-danger{% else %}text-success{% endif %}">
+                                {{ lottery.tickets_remaining }}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="progress mt-4" style="height: 10px;">
-                        <div class="progress-bar" role="progressbar" style="width: {{ lottery.progress_percent }}%" aria-valuenow="{{ lottery.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 12px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: {{ lottery.progress_percent }}%" 
+                             aria-valuenow="{{ lottery.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ lottery.progress_percent }}%
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between mt-2 small text-muted">
-                        <span>{{ lottery.tickets_sold }}/{{ lottery.items_count }} venduti</span>
+                    <div class="d-flex justify-content-between mb-4 small text-muted">
+                        <span>{{ lottery.tickets_sold|intcomma }}/{{ lottery.items_count|intcomma }} venduti</span>
                         <span>
                             {% if lottery.expiration_date %}
-                                Scade {{ lottery.expiration_date|date:"d/m/Y" }}
+                                <i class="fas fa-clock me-1"></i>Scade {{ lottery.expiration_date|date:"d/m/Y H:i" }}
                             {% else %}
-                                Nessuna scadenza
+                                <i class="fas fa-infinity me-1"></i>Nessuna scadenza
                             {% endif %}
                         </span>
                     </div>
 
-                    <div class="d-grid gap-2 mt-4">
-                        <a href="{% url 'lotteries:buy_tickets' lottery.id %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-ticket-alt me-2"></i>Acquista Biglietto
-                        </a>
+                    <!-- Purchase Form -->
+                    <div class="d-grid gap-2 mb-4">
+                        {% if lottery.tickets_remaining > 0 and lottery.expiration_date and lottery.expiration_date > now %}
+                            <a href="{% url 'lotteries:buy_tickets' lottery.id %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-shopping-cart me-2"></i>Acquista Biglietti
+                            </a>
+                        {% else %}
+                            <button class="btn btn-secondary btn-lg" disabled>
+                                {% if lottery.tickets_remaining <= 0 %}
+                                    <i class="fas fa-times-circle me-2"></i>Esaurita
+                                {% else %}
+                                    <i class="fas fa-clock me-2"></i>Scaduta
+                                {% endif %}
+                            </button>
+                        {% endif %}
                         <a href="{% url 'lotteries:list' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Torna al listing
+                            <i class="fas fa-arrow-left me-2"></i>Altre lotterie
                         </a>
                     </div>
 
+                    <!-- User Tickets -->
                     {% if user.is_authenticated and user_tickets %}
-                        <hr class="my-4">
-                        <h3 class="h6 fw-bold mb-2">I tuoi biglietti</h3>
-                        <ul class="list-group list-group-flush">
-                            {% for ticket in user_tickets %}
-                                <li class="list-group-item px-0 d-flex justify-content-between">
-                                    <span>{{ ticket.ticket_number }}</span>
-                                    <span class="text-muted small">{{ ticket.payment_status }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
+                        <div class="border-top pt-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-ticket-alt me-2"></i>I tuoi biglietti ({{ user_tickets|length }})
+                            </h6>
+                            <div class="list-group list-group-flush">
+                                {% for ticket in user_tickets %}
+                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="fw-bold">{{ ticket.ticket_number }}</span>
+                                            <small class="text-muted d-block">Acquistato {{ ticket.purchased_at|date:"d/m/Y H:i" }}</small>
+                                        </div>
+                                        {% if ticket.payment_status == 'completed' %}
+                                            <span class="badge bg-success">Confermato</span>
+                                        {% elif ticket.payment_status == 'pending' %}
+                                            <span class="badge bg-warning">In attesa</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ ticket.payment_status }}</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Recent Purchases -->
+    {% if recent_purchases %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-history me-2"></i>Ultimi acquisti
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Biglietto</th>
+                                        <th>Acquirente</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for purchase in recent_purchases %}
+                                        <tr>
+                                            <td><span class="font-monospace">{{ purchase.ticket_number }}</span></td>
+                                            <td>{{ purchase.buyer_anonymized }}</td>
+                                            <td><small class="text-muted">{{ purchase.purchased_at|naturaltime }}</small></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
+
+{% block extra_js %}
+<script>
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+        var alerts = document.querySelectorAll('.alert-dismissible');
+        alerts.forEach(function(alert) {
+            if (alert.classList.contains('show')) {
+                alert.classList.remove('show');
+            }
+        });
+    }, 5000);
+
+    // Add loading state to purchase buttons
+    document.querySelectorAll('.btn-primary').forEach(function(btn) {
+        if (btn.textContent.includes('Acquista')) {
+            btn.addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reindirizzamento...';
+            });
+        }
+    });
+</script>
+{% endblock %}
 {% endblock %}
