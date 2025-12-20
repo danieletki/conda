@@ -1,0 +1,78 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Lotteria Attivata - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>🎯 La tua Lotteria è Ora Attiva!</h2>
+
+<p>Ciao <strong>{{ seller.first_name|default:seller.username }}</strong>,</p>
+
+<p>Perfetto! La tua lotteria "<strong>{{ lottery.title }}</strong>" è stata attivata con successo.</p>
+
+<div class="success-box">
+    <h3>✅ Lotteria Attiva</h3>
+    <p>La tua lotteria è ora visibile a tutti gli utenti e pronta per ricevere acquisti di biglietti.</p>
+</div>
+
+<div class="lottery-details">
+    <div class="lottery-title">📋 Dettagli Lotteria</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Titolo:</div>
+            <div class="lottery-info-cell">{{ lottery.title }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Valore Oggetto:</div>
+            <div class="lottery-info-cell">€{{ lottery.item_value }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Numero Biglietti:</div>
+            <div class="lottery-info-cell">{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Prezzo per Biglietto:</div>
+            <div class="lottery-info-cell">€{{ lottery.ticket_price }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Scadenza:</div>
+            <div class="lottery-info-cell">
+                {% if lottery.expiration_date %}
+                    {{ lottery.expiration_date|date:"d/m/Y H:i" }}
+                {% else %}
+                    Non impostata
+                {% endif %}
+            </div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Venduti:</div>
+            <div class="lottery-info-cell">{{ lottery.tickets_sold }}/{{ lottery.items_count }}</div>
+        </div>
+    </div>
+</div>
+
+<h3>📊 Come Monitorare la tua Lotteria:</h3>
+<ul>
+    <li><strong>Dashboard Venditore:</strong> Monitora le vendite in tempo reale</li>
+    <li><strong>Notifiche Email:</strong> Ricevi aggiornamenti sui biglietti venduti</li>
+    <li><strong>Notifica di Sold-Out:</strong> Quando tutti i biglietti sono venduti</li>
+    <li><strong>Notifica di Estrazione:</strong> Quando viene estratto il vincitore</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:manage' lottery.id %}" class="btn">Gestisci la Lotteria</a>
+</div>
+
+<div class="info-box">
+    <h4>💡 Suggerimenti per il Successo:</h4>
+    <ul>
+        <li>Condividi la tua lotteria sui social media</li>
+        <li>Descrivi l'oggetto in modo accattivante</li>
+        <li>Usa immagini di alta qualità</li>
+        <li>Rispondi alle domande degli interessati</li>
+    </ul>
+</div>
+
+<p>Buona fortuna con la tua lotteria!<br>
+Il Team di MercatoPro</p>
+{% endblock %}

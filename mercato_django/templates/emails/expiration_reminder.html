@@ -1,0 +1,124 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Promemoria: Scadenza Imminente - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>⏰ Scadenza Imminente!</h2>
+
+<p>Ciao <strong>{{ user.first_name|default:user.username }}</strong>,</p>
+
+{% if notification_type == 'lottery_ending_soon' %}
+    <p>Questo è un promemoria che la lotteria "<strong>{{ lottery.title }}</strong>" sta per scadere!</p>
+    
+    <div class="warning-box">
+        <h3>⏳ Tempo Rimanente: {{ time_remaining }}</h3>
+        <p>Se vuoi partecipare, devi acquistare un biglietto prima della scadenza!</p>
+    </div>
+{% elif notification_type == 'lottery_expiring_today' %}
+    <p><strong>ATTENZIONE:</strong> La lotteria "<strong>{{ lottery.title }}</strong>" scade <strong>OGGI</strong>!</p>
+    
+    <div class="error-box">
+        <h3>🚨 Scade Oggi!</h3>
+        <p>Hai solo alcune ore per partecipare!</p>
+    </div>
+{% endif %}
+
+<div class="lottery-details">
+    <div class="lottery-title">📋 Dettagli Lotteria</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Titolo:</div>
+            <div class="lottery-info-cell">{{ lottery.title }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Valore in Palio:</div>
+            <div class="lottery-info-cell">€{{ lottery.item_value }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Prezzo Biglietto:</div>
+            <div class="lottery-info-cell">€{{ lottery.ticket_price }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Rimasti:</div>
+            <div class="lottery-info-cell">
+                {% if lottery.items_count > lottery.tickets_sold %}
+                    <strong style="color: #dc3545;">{{ lottery.items_count|add:"-"|add:lottery.tickets_sold }}</strong>
+                {% else %}
+                    <span style="color: #28a745;">SOLD OUT!</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Scadenza:</div>
+            <div class="lottery-info-cell">
+                <strong>{{ lottery.expiration_date|date:"d/m/Y H:i" }}</strong>
+                {% if notification_type == 'lottery_ending_soon' %}
+                    <br><small style="color: #dc3545;">(Tra {{ time_remaining }})</small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Venditore:</div>
+            <div class="lottery-info-cell">{{ lottery.seller.get_full_name|default:lottery.seller.username }}</div>
+        </div>
+    </div>
+</div>
+
+{% if lottery.items_count > lottery.tickets_sold %}
+    <h3>🎯 Ultima Chance!</h3>
+    
+    <div class="info-box">
+        <h4>💫 Perché Partecipare:</h4>
+        <ul>
+            <li><strong>Prezzo accessibile:</strong> Solo €{{ lottery.ticket_price }} per tentare la fortuna</li>
+            <li><strong>Premio di valore:</strong> €{{ lottery.item_value }} in palio</li>
+            <li><strong>Trasparenza totale:</strong> Estrazione verificabile e sicura</li>
+            <li><strong>Tempo limitato:</strong> Questa è davvero l'ultima occasione!</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}{% url 'lotteries:detail' lottery.id %}" class="btn">Acquista Subito!</a>
+    </div>
+
+    <div class="warning-box">
+        <h4>⚠️ Non Aspettare!</h4>
+        <p>Ricorda che:</p>
+        <ul>
+            <li>L'acquisto richiede pochi secondi</li>
+            <li>I biglietti sono numerati e unici</li>
+            <li>Una volta che la lotteria scade, non sarà più possibile partecipare</li>
+            <li>Più tempo aspetti, meno probabilità hai di trovare ancora biglietti disponibili</li>
+        </ul>
+    </div>
+{% else %}
+    <div class="success-box">
+        <h3>🎉 Lotteria SOLD OUT!</h3>
+        <p>Fantastico! Questa lotteria ha raggiunto il numero massimo di biglietti venduti.</p>
+        <p>L'estrazione avverrà automaticamente a breve!</p>
+    </div>
+{% endif %}
+
+{% if notification_type == 'lottery_expiring_today' %}
+    <div style="text-align: center; margin: 30px 0;">
+        <div style="background-color: #dc3545; color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin: 0; color: white;">🚨 SCADE OGGI! 🚨</h3>
+            <p style="margin: 5px 0;">Non perdere questa opportunità!</p>
+        </div>
+    </div>
+{% endif %}
+
+<div class="info-box">
+    <h4>🔔 Hai Ricevuto Questa Email Perché:</h4>
+    <p>Hai visitato questa lotteria o hai mostrato interesse per categorie simili. Vuoi disattivare queste notifiche?</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'accounts:notifications' %}" class="btn" style="background-color: #6c757d;">Gestisci Notifiche</a>
+</div>
+
+<p>Grazie per aver scelto MercatoPro!</p>
+
+<p>Il Team di MercatoPro</p>
+{% endblock %}

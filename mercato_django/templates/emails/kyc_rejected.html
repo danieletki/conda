@@ -1,0 +1,43 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}KYC - Azione Richiesta - MercatoPro{% endblock %}
+
+{% block content %}
+<h2>📋 Verifica KYC - Azione Richiesta</h2>
+
+<p>Ciao <strong>{{ user.first_name|default:user.username }}</strong>,</p>
+
+<p>Sfortunatamente, la tua verifica KYC non è stata approvata al momento. Questo può accadere per diversi motivi.</p>
+
+<div class="error-box">
+    <h3>❌ Verifica Non Approvata</h3>
+    <p>La documentazione fornita non ha soddisfatto i nostri requisiti di verifica.</p>
+</div>
+
+<div class="warning-box">
+    <h4>🔄 Come Procedere:</h4>
+    <p>Puoi inviare una nuova richiesta di verifica con i seguenti miglioramenti:</p>
+    <ul>
+        <li><strong>Documento più chiaro:</strong> Assicurati che il documento sia ben leggibile e ben illuminato</li>
+        <li><strong>Foto completa:</strong> Include tutti i dati del documento nell'immagine</li>
+        <li><strong>Documento valido:</strong> Verifica che il documento non sia scaduto</li>
+        <li><strong>Dati corrispondenti:</strong> I dati del documento devono corrispondere al tuo account</li>
+    </ul>
+</div>
+
+<h3>📄 Documenti Accettati:</h3>
+<ul>
+    <li>Carta d'Identità</li>
+    <li>Passaporto</li>
+    <li>Patente di guida</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'accounts:kyc_upload' %}" class="btn">Carica Nuovi Documenti</a>
+</div>
+
+<p>Se ritieni che ci sia stato un errore o hai bisogno di assistenza, contattaci immediatamente a <a href="mailto:kyc@mercato.pro">kyc@mercato.pro</a> con il numero del tuo ticket: <strong>{{ kyc_ticket_id }}</strong></p>
+
+<p>Il Team di MercatoPro<br>
+Verifiche KYC</p>
+{% endblock %}

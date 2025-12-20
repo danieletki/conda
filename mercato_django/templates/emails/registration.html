@@ -1,0 +1,37 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Benvenuto su MercatoPro!{% endblock %}
+
+{% block content %}
+<h2>🎉 Benvenuto su MercatoPro, {{ user.first_name|default:user.username }}!</h2>
+
+<p>Grazie per esserti registrato su <strong>MercatoPro</strong>, la piattaforma di lotterie online più trasparente e sicura.</p>
+
+<div class="info-box">
+    <h3>I tuoi dati di accesso:</h3>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+</div>
+
+<h3>🚀 Cosa puoi fare su MercatoPro:</h3>
+<ul>
+    <li><strong>Partecipare alle lotterie:</strong> Acquista biglietti per le lotterie attive e tenta la fortuna</li>
+    <li><strong>Creare le tue lotterie:</strong> Metti in palio i tuoi oggetti e lascia che altri partecipino</li>
+    <li><strong>Trasparenza totale:</strong> Ogni estrazione è tracciata e verificabile</li>
+    <li><strong>Sistema sicuro:</strong> Pagamenti protetti e verifica KYC per tutti</li>
+</ul>
+
+<div class="warning-box">
+    <h4>⚠️ Importante: Verifica KYC</h4>
+    <p>Per poter creare lotterie e ricevere vincite, dovrai completare il processo di verifica KYC (Know Your Customer). Riceverai una email non appena il processo sarà disponibile.</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'home' %}" class="btn">Accedi alla Piattaforma</a>
+</div>
+
+<p>Se hai domande o bisogno di assistenza, non esitare a contattarci a <a href="mailto:support@mercato.pro">support@mercato.pro</a>.</p>
+
+<p>Buona fortuna!<br>
+Il Team di MercatoPro</p>
+{% endblock %}
