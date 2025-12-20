@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from .models import CustomUser, Profile
 
 
@@ -70,20 +70,24 @@ class ProfileForm(forms.ModelForm):
         model = Profile
         fields = ('profile_image', 'bio', 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country')
         widgets = {
-            'bio': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Raccontaci qualcosa di te...'}),
-            'address_line1': forms.TextInput(attrs={'placeholder': 'Via/Piazza, numero civico'}),
-            'address_line2': forms.TextInput(attrs={'placeholder': 'Appartamento, interno, ecc. (opzionale)'}),
-            'city': forms.TextInput(attrs={'placeholder': 'Città'}),
-            'state': forms.TextInput(attrs={'placeholder': 'Provincia/Regione'}),
-            'postal_code': forms.TextInput(attrs={'placeholder': 'CAP'}),
-            'country': forms.TextInput(attrs={'placeholder': 'Paese'}),
+            'bio': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Raccontaci qualcosa di te...', 'class': 'form-control'}),
+            'address_line1': forms.TextInput(attrs={'placeholder': 'Via/Piazza, numero civico', 'class': 'form-control'}),
+            'address_line2': forms.TextInput(attrs={'placeholder': 'Appartamento, interno, ecc. (opzionale)', 'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'placeholder': 'Città', 'class': 'form-control'}),
+            'state': forms.TextInput(attrs={'placeholder': 'Provincia/Regione', 'class': 'form-control'}),
+            'postal_code': forms.TextInput(attrs={'placeholder': 'CAP', 'class': 'form-control'}),
+            'country': forms.TextInput(attrs={'placeholder': 'Paese', 'class': 'form-control'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            if field_name != 'bio':
-                field.widget.attrs['class'] = 'form-control'
+            if field_name not in ['bio', 'profile_image']:
+                if 'class' not in field.widget.attrs:
+                    field.widget.attrs['class'] = 'form-control'
+                    
+            if field_name == 'profile_image':
+                field.widget.attrs['accept'] = 'image/*'
 
 
 class UserSettingsForm(forms.ModelForm):
@@ -94,12 +98,25 @@ class UserSettingsForm(forms.ModelForm):
         model = CustomUser
         fields = ('email', 'phone_number', 'date_of_birth')
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+39 123 456 7890'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = 'form-control'
-            if field_name == 'phone_number':
+            if 'class' not in field.widget.attrs:
+                field.widget.attrs['class'] = 'form-control'
+            if field_name == 'phone_number' and 'placeholder' not in field.widget.attrs:
                 field.widget.attrs['placeholder'] = '+39 123 456 7890'
+
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    """
+    Custom password change form with Bootstrap styling
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs['class'] = 'form-control'
