@@ -191,43 +191,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'mercato_accounts.CustomUser'
 
 # Site URL for email templates
-SITE_URL = 'http://localhost:8000'
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Configurabile
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = ''  # Da configurare in produzione
-EMAIL_HOST_PASSWORD = ''  # Da configurare in produzione
-DEFAULT_FROM_EMAIL = 'noreply@mercato.pro'
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-# Email retry configuration
-EMAIL_RETRY_ATTEMPTS = 3
-EMAIL_RETRY_DELAY = 60  # seconds
-
-# Celery Configuration
-REDIS_HOST = config('REDIS_HOST', default='localhost')
-REDIS_PORT = config('REDIS_PORT', default='6379', cast=int)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
-REDIS_DB = config('REDIS_DB', default='0', cast=int)
-
-if REDIS_PASSWORD:
-    CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
-else:
-    CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
-
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='django-db')
-CELERY_CACHE_BACKEND = 'django-cache'
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
-# Email configuration with environment variables
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
@@ -236,5 +203,58 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@mercato.pro')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-# Site URL
-SITE_URL = config('SITE_URL', default='http://localhost:8000')
+# Email retry configuration
+EMAIL_RETRY_ATTEMPTS = config('EMAIL_RETRY_ATTEMPTS', default=3, cast=int)
+EMAIL_RETRY_DELAY = config('EMAIL_RETRY_DELAY', default=60, cast=int)  # seconds
+
+# Static and Media Files configuration for Docker
+STATIC_URL = config('STATIC_URL', default='/static/')
+STATIC_ROOT = config('STATIC_ROOT', default=BASE_DIR / 'staticfiles')
+
+MEDIA_URL = config('MEDIA_URL', default='/media/')
+MEDIA_ROOT = config('MEDIA_ROOT', default=BASE_DIR / 'media')
+
+# Security and Cookie settings
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+
+# PayPal Configuration
+PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID', default='')
+PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET', default='')
+PAYPAL_SANDBOX_MODE = config('PAYPAL_SANDBOX_MODE', default=True, cast=bool)
+
+# CSRF and CORS settings
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
+
+# Additional security settings
+SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
+SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+
+# Celery Configuration - Redis Backend
+REDIS_HOST = config('REDIS_HOST', default='localhost')
+REDIS_PORT = config('REDIS_PORT', default='6379', cast=int)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
+REDIS_DB = config('REDIS_DB', default='0', cast=int)
+
+# Build Redis URL for Celery broker with password support
+if REDIS_PASSWORD:
+    CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
+else:
+    CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
+
+# Celery settings from environment
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='django-db')
+CELERY_CACHE_BACKEND = config('CELERY_CACHE_BACKEND', default='django-cache')
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Worker settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = config('CELERY_WORKER_PREFETCH_MULTIPLIER', default=1, cast=int)
+CELERY_WORKER_MAX_TASKS_PER_CHILD = config('CELERY_WORKER_MAX_TASKS_PER_CHILD', default=1000, cast=int)

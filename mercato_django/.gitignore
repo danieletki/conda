@@ -60,6 +60,9 @@ django.log
 .env
 .env.local
 .env.production
+.env.docker
+.env.*.local
+.env.*.production
 local_settings.py
 
 # PyCharm
