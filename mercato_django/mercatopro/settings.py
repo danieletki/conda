@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'mercato_payments',
     'mercato_notifications',
     'mercato_admin',
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -166,3 +168,13 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Email retry configuration
 EMAIL_RETRY_ATTEMPTS = 3
 EMAIL_RETRY_DELAY = 60  # seconds
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
