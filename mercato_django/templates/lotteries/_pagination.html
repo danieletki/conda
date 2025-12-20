@@ -1,0 +1,29 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="mt-5" aria-label="Paginazione lotterie">
+    <ul class="pagination justify-content-center flex-wrap">
+        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            {% if page_obj.has_previous %}
+                <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">Precedente</a>
+            {% else %}
+                <span class="page-link">Precedente</span>
+            {% endif %}
+        </li>
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+                <li class="page-item"><a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            {% if page_obj.has_next %}
+                <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Successiva</a>
+            {% else %}
+                <span class="page-link">Successiva</span>
+            {% endif %}
+        </li>
+    </ul>
+</nav>
+{% endif %}

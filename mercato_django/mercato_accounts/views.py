@@ -2,16 +2,31 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Count, Q
 from django.http import HttpResponse
+
+from mercato_lotteries.models import Lottery
+
 from .forms import CustomUserCreationForm, CustomUserLoginForm
 from .models import CustomUser
 
 
 def home(request):
-    """
-    Home page view
-    """
-    return render(request, 'home.html')
+    lotteries_qs = Lottery.objects.filter(status='active').annotate(
+        tickets_sold_count=Count('tickets', filter=Q(tickets__payment_status='completed'))
+    )
+
+    featured_lotteries = lotteries_qs.order_by('-tickets_sold_count', '-created_at')[:3]
+    latest_lotteries = lotteries_qs.order_by('-created_at')[:6]
+
+    return render(
+        request,
+        'home.html',
+        {
+            'featured_lotteries': featured_lotteries,
+            'latest_lotteries': latest_lotteries,
+        },
+    )
 
 
 def login_view(request):
