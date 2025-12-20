@@ -1,15 +1,19 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
-from django.db.models import Count, Q, Sum, DecimalField
-from django.db.models.functions import Coalesce
-from django.http import HttpResponse
+from django.db.models import Count, Q, Sum, DecimalField, Avg, Min, Max
+from django.db.models.functions import Coalesce, TruncDate, TruncDay
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+from django.http import Http404
+import csv
+from datetime import datetime
 
 from mercato_lotteries.models import Lottery, LotteryTicket, WinnerDrawing
 from mercato_payments.models import Payment, LotteryPayment
+from mercato_lotteries.forms import LotteryCreationForm
 
 from .forms import CustomUserCreationForm, CustomUserLoginForm, ProfileForm, UserSettingsForm, CustomPasswordChangeForm
 from .models import CustomUser, Profile
@@ -243,3 +247,340 @@ def privacy(request):
     Privacy policy page view
     """
     return render(request, 'accounts/privacy.html')
+
+
+@login_required
+def seller_dashboard(request):
+    """
+    Seller dashboard with lottery management, statistics, and reports
+    """
+    # Check if user is a seller (has lotteries created)
+    if not request.user.lotteries_as_seller.exists():
+        # Redirect to create lottery if no lotteries exist
+        return redirect('accounts:seller_create_lottery')
+    
+    # Get seller's lotteries with statistics
+    seller_lotteries = (
+        Lottery.objects.filter(seller=request.user)
+        .annotate(
+            tickets_sold_count=Count('tickets', filter=Q(tickets__payment_status='completed')),
+            total_revenue=Sum(
+                'tickets__lottery__ticket_price',
+                filter=Q(tickets__payment_status='completed')
+            ),
+            winning_drawings=Count('drawings', filter=Q(drawings__status='completed'))
+        )
+        .order_by('-created_at')
+    )
+    
+    # Filter by status if provided
+    status_filter = request.GET.get('status', 'all')
+    if status_filter == 'active':
+        seller_lotteries = seller_lotteries.filter(status='active')
+    elif status_filter == 'archived':
+        seller_lotteries = seller_lotteries.filter(
+            status__in=['closed', 'completed', 'drawn']
+        )
+    elif status_filter == 'won':
+        seller_lotteries = seller_lotteries.filter(
+            winning_drawings__gt=0
+        )
+    
+    # Calculate overall statistics
+    completed_tickets = LotteryTicket.objects.filter(
+        lottery__seller=request.user,
+        payment_status='completed'
+    )
+    
+    total_tickets_sold = completed_tickets.count()
+    
+    # Calculate total earnings (net revenue after commission)
+    total_earnings = Payment.objects.filter(
+        payment_transactions__ticket__in=completed_tickets,
+        status='completed'
+    ).aggregate(
+        total_net=Coalesce(Sum('payment_transactions__net_amount'), 0, output_field=DecimalField())
+    )['total_net']
+    
+    # Count total lotteries created
+    total_lotteries_created = request.user.lotteries_as_seller.count()
+    
+    # Get recent activity (last 5 tickets sold)
+    recent_sales = completed_tickets.select_related(
+        'lottery', 'buyer'
+    ).order_by('-purchased_at')[:5]
+    
+    # Check KYC status
+    kyc_status = {
+        'is_verified': request.user.is_verified,
+        'status_display': 'Approvato' if request.user.is_verified else 'In attesa di approvazione',
+        'can_create_lottery': request.user.is_verified,
+    }
+    
+    context = {
+        'seller_lotteries': seller_lotteries,
+        'status_filter': status_filter,
+        'total_lotteries_created': total_lotteries_created,
+        'total_tickets_sold': total_tickets_sold,
+        'total_earnings': total_earnings,
+        'recent_sales': recent_sales,
+        'kyc_status': kyc_status,
+    }
+    
+    return render(request, 'accounts/seller_dashboard.html', context)
+
+
+@login_required
+def seller_create_lottery(request):
+    """
+    Create new lottery with image uploads
+    """
+    # Check KYC verification before allowing lottery creation
+    if not request.user.is_verified:
+        messages.error(
+            request,
+            'Per creare lotterie è necessario completare la verifica KYC. '
+            'Carica i tuoi documenti nelle impostazioni KYC.'
+        )
+        return redirect('accounts:seller_kyc_settings')
+    
+    if request.method == 'POST':
+        form = LotteryCreationForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Save the lottery with the current user as seller
+            lottery = form.save(commit=False)
+            lottery.seller = request.user
+            lottery.status = 'draft'  # Start as draft
+            
+            try:
+                lottery.save()
+                messages.success(
+                    request,
+                    f'Lotteria "{lottery.title}" creata con successo. '
+                    'Puoi attivarla quando sei pronto.'
+                )
+                return redirect('accounts:seller_dashboard')
+            except ValidationError as e:
+                messages.error(request, str(e))
+        else:
+            messages.error(request, 'Ci sono errori nel form. Correggi e riprova.')
+    else:
+        form = LotteryCreationForm()
+    
+    return render(request, 'accounts/seller_create_lottery.html', {
+        'form': form,
+    })
+
+
+@login_required
+def seller_lottery_detail(request, lottery_id):
+    """
+    Detail view for a specific lottery with sales analytics
+    """
+    lottery = get_object_or_404(
+        Lottery.objects.annotate(
+            tickets_sold_count=Count('tickets', filter=Q(tickets__payment_status='completed')),
+            tickets_sold_value=Sum(
+                'ticket_price',
+                filter=Q(tickets__payment_status='completed')
+            )
+        ),
+        id=lottery_id,
+        seller=request.user
+    )
+    
+    # Get completed tickets with buyer info
+    completed_tickets = (
+        LotteryTicket.objects.filter(
+            lottery=lottery,
+            payment_status='completed'
+        )
+        .select_related('buyer')
+        .order_by('-purchased_at')
+    )
+    
+    # Calculate net earnings (after commission)
+    total_revenue = lottery.tickets_sold_value or 0
+    commission_rate = Decimal('0.10')  # 10% commission
+    net_earnings = total_revenue * (1 - commission_rate)
+    commission_amount = total_revenue * commission_rate
+    
+    # Sales analytics - tickets sold per day
+    sales_by_date = (
+        completed_tickets
+        .annotate(date=TruncDate('purchased_at'))
+        .values('date')
+        .annotate(
+            tickets_count=Count('id'),
+            revenue=Sum('lottery__ticket_price')
+        )
+        .order_by('date')
+    )
+    
+    # Prepare data for charts
+    sales_dates = [item['date'].strftime('%Y-%m-%d') for item in sales_by_date]
+    sales_counts = [item['tickets_count'] for item in sales_by_date]
+    daily_revenues = [float(item['revenue'] or 0) for item in sales_by_date]
+    
+    # Get winner if lottery is completed
+    winner = None
+    if lottery.status in ['drawn', 'completed']:
+        winner_drawing = lottery.drawings.filter(status='completed').first()
+        if winner_drawing:
+            winner = {
+                'user': winner_drawing.winner,
+                'ticket': winner_drawing.winning_ticket,
+                'drawn_at': winner_drawing.drawn_at,
+            }
+    
+    context = {
+        'lottery': lottery,
+        'completed_tickets': completed_tickets,
+        'total_revenue': total_revenue,
+        'net_earnings': net_earnings,
+        'commission_amount': commission_amount,
+        'sales_dates': sales_dates,
+        'sales_counts': sales_counts,
+        'daily_revenues': daily_revenues,
+        'winner': winner,
+    }
+    
+    return render(request, 'accounts/seller_lottery_detail.html', context)
+
+
+@login_required
+def seller_reports(request):
+    """
+    Financial reports for seller with CSV download
+    """
+    # Get all completed payments for seller's lotteries
+    completed_tickets = LotteryTicket.objects.filter(
+        lottery__seller=request.user,
+        payment_status='completed'
+    ).select_related('lottery', 'buyer')
+    
+    # Calculate totals
+    total_payments = Payment.objects.filter(
+        payment_transactions__ticket__in=completed_tickets,
+        status='completed'
+    )
+    
+    total_gross = total_payments.aggregate(
+        total=Coalesce(Sum('payment_transactions__amount'), 0, output_field=DecimalField())
+    )['total']
+    
+    total_commissions = total_payments.aggregate(
+        total=Coalesce(Sum('payment_transactions__commission'), 0, output_field=DecimalField())
+    )['total']
+    
+    total_earnings = total_gross - total_commissions if total_gross else 0
+    
+    # Reports by lottery
+    lottery_reports = (
+        Lottery.objects.filter(
+            seller=request.user,
+            tickets__payment_status='completed'
+        )
+        .annotate(
+            tickets_sold=Count('tickets', filter=Q(tickets__payment_status='completed')),
+            gross_revenue=Sum('tickets__lottery__ticket_price', filter=Q(tickets__payment_status='completed')),
+        )
+        .filter(tickets_sold__gt=0)
+        .order_by('-created_at')
+    )
+    
+    # Calculate net revenue for each lottery
+    for lottery in lottery_reports:
+        commission_rate = Decimal('0.10')
+        lottery.net_revenue = (lottery.gross_revenue or 0) * (1 - commission_rate)
+        lottery.commission_amount = (lottery.gross_revenue or 0) * commission_rate
+    
+    # CSV Download
+    if request.GET.get('download') == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="seller_report_{request.user.username}_{timezone.now().strftime("%Y%m%d")}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Data Report',
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ])
+        writer.writerow([])
+        
+        # Summary section
+        writer.writerow(['RIEPILOGO TOTALE'])
+        writer.writerow(['Metrica', 'Valore'])
+        writer.writerow(['Fatturato Totale (Lordo)', f'€ {total_gross:.2f}' if total_gross else '€ 0.00'])
+        writer.writerow(['Commissioni Totali', f'€ {total_commissions:.2f}' if total_commissions else '€ 0.00'])
+        writer.writerow(['Guadagno Netto', f'€ {total_earnings:.2f}' if total_earnings else '€ 0.00'])
+        writer.writerow(['Biglietti Venduti', completed_tickets.count()])
+        writer.writerow(['Numero Lotterie', request.user.lotteries_as_seller.count()])
+        writer.writerow([])
+        
+        # Detailed lottery breakdown
+        writer.writerow(['DETTAGLIO PER LOTTERIA'])
+        writer.writerow([
+            'Titolo Lotteria',
+            'Data Creazione',
+            'Status',
+            'Biglietti Venduti',
+            'Fatturato Lordo',
+            'Commissioni',
+            'Guadagno Netto'
+        ])
+        
+        for lottery in lottery_reports:
+            writer.writerow([
+                lottery.title,
+                lottery.created_at.strftime('%Y-%m-%d'),
+                lottery.get_status_display(),
+                lottery.tickets_sold,
+                f'€ {lottery.gross_revenue:.2f}',
+                f'€ {lottery.commission_amount:.2f}',
+                f'€ {lottery.net_revenue:.2f}'
+            ])
+        
+        return response
+    
+    context = {
+        'total_gross': total_gross,
+        'total_commissions': total_commissions,
+        'total_earnings': total_earnings,
+        'tickets_sold': completed_tickets.count(),
+        'lottery_reports': lottery_reports,
+    }
+    
+    return render(request, 'accounts/seller_reports.html', context)
+
+
+@login_required
+def seller_kyc_settings(request):
+    """
+    KYC settings for sellers to upload/re-upload documents
+    """
+    # This is a placeholder - in a real implementation, you'd have a KYC document model
+    # For now, we'll show the current KYC status and link to admin if needed
+    
+    kyc_info = {
+        'is_verified': request.user.is_verified,
+        'status': 'Approvato' if request.user.is_verified else 'In attesa',
+        'submission_date': None,  # Would come from KYC document model
+        'document_type': None,    # Would come from KYC document model
+        'rejection_reason': None, # Would come from KYC document model
+    }
+    
+    if request.method == 'POST':
+        # In a real implementation, handle document upload here
+        # For now, show a message that this would upload documents
+        messages.info(
+            request,
+            'Funzionalità di upload documento in fase di implementazione. '
+            'Contatta l\'amministratore per l\'upload manuale dei documenti.'
+        )
+        return redirect('accounts:seller_kyc_settings')
+    
+    context = {
+        'kyc_info': kyc_info,
+    }
+    
+    return render(request, 'accounts/seller_kyc_settings.html', context)

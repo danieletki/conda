@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dettagli Lotteria - {{ lottery.title }} - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-ticket-alt me-3 text-primary"></i>Dettagli Lotteria
+                    </h1>
+                    <p class="text-muted mt-2">
+                        <strong>{{ lottery.title }}</strong> - 
+                        <span class="badge bg-{{ lottery.status|yesno:'success,warning,warning,info,primary' }}">
+                            {{ lottery.get_status_display }}
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:seller_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Torna alla Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lottery Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Panoramica
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Main Image -->
+                        <div class="col-md-6 mb-4">
+                            {% if lottery.main_image_data_uri %}
+                                <img src="{{ lottery.main_image_data_uri }}" 
+                                     alt="{{ lottery.title }}" 
+                                     class="img-fluid rounded shadow-sm">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 200px;">
+                                    <i class="fas fa-image fa-5x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Basic Info -->
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Informazioni Base</h5>
+                            <div class="mb-3">
+                                <strong>Valore Oggetto:</strong> € {{ lottery.item_value }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Biglietti Totali:</strong> {{ lottery.items_count }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Biglietti Venduti:</strong> 
+                                <span class="badge bg-{{ lottery.tickets_sold_count|yesno:'success,danger' }}">
+                                    {{ lottery.tickets_sold_count }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Prezzo Biglietto:</strong> € {{ lottery.ticket_price }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Progresso:</strong>
+                                <div class="progress mt-2" style="height: 10px;">
+                                    <div class="progress-bar bg-gradient-primary" 
+                                         style="width: {{ lottery.progress_percent }}%"></div>
+                                </div>
+                                <small class="text-muted">
+                                    {{ lottery.progress_percent }}% completato
+                                </small>
+                            </div>
+                            {% if lottery.expiration_date %}
+                                <div class="alert alert-{{ lottery.expiration_date|timesince|split:','|first|add:'0'|add:0|yesno:'danger,warning' }} 
+                                           alert-sm py-2" role="alert">
+                                    <small class="mb-0">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Scade il {{ lottery.expiration_date|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mt-4">
+                        <h6 class="mb-3">Descrizione</h6>
+                        <div class="bg-light p-3 rounded">
+                            {{ lottery.description|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Summary -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Incassi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="display-6 text-success">
+                            € {{ net_earnings|floatformat:2 }}
+                        </h4>
+                        <small class="text-muted">Guadagno Netto</small>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Lordo</small>
+                            <strong>€ {{ total_revenue|floatformat:2 }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Commissioni</small>
+                            <strong class="text-danger">-€ {{ commission_amount|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Commissione piattaforma: 10%
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status & Actions -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>Azioni
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Status Attuale</small>
+                        <span class="badge bg-{{ lottery.status|yesno:'success,warning,warning,info,primary' }} fs-6">
+                            {{ lottery.get_status_display }}
+                        </span>
+                    </div>
+                    {% if lottery.status == 'draft' %}
+                        <button class="btn btn-success w-100 mb-2" disabled>
+                            <i class="fas fa-play me-2"></i>Attiva Lotteria
+                        </button>
+                    {% endif %}
+                    <button class="btn btn-outline-secondary w-100 mb-2" disabled>
+                        <i class="fas fa-edit me-2"></i>Modifica Lotteria
+                    </button>
+                    <a href="{% url 'accounts:seller_reports' %}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-download me-2"></i>Scarica Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Chart -->
+    {% if sales_dates and sales_counts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-area me-2"></i>Andamento Vendite
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Buyers List -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Lista Acquirenti
+                        </h5>
+                        <span class="badge bg-secondary">
+                            {{ completed_tickets.count }} acquirenti
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data Acquisto</th>
+                                    <th>Acquirente</th>
+                                    <th>Numero Biglietto</th>
+                                    <th>Importo</th>
+                                    <th>Stato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in completed_tickets %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ ticket.purchased_at|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ ticket.buyer.username|truncatechars:20 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <code class="text-primary">{{ ticket.ticket_number }}</code>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">€ {{ lottery.ticket_price }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>
+                                            {{ ticket.get_payment_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-3 d-block"></i>
+                                        Nessun biglietto venduto per questa lotteria
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Info (if exists) -->
+    {% if winner %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>Vincitore Estratto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <img src="{% if winner.user.profile.profile_image %}{{ winner.user.profile.profile_image.url }}{% else %}{% static 'img/default-avatar.png' %}{% endif %}" 
+                                         alt="{{ winner.user.username }}" 
+                                         class="rounded-circle" 
+                                         style="width: 60px; height: 60px;">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="mb-1">{{ winner.user.username }}</h5>
+                                    <p class="mb-0 text-muted">
+                                        <i class="fas fa-envelope me-1"></i>{{ winner.user.email }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="mb-2">
+                                <small class="text-muted">Biglietto Vincitore</small><br>
+                                <code class="text-success">{{ winner.ticket.ticket_number }}</code>
+                            </div>
+                            <div>
+                                <small class="text-muted">Data Estrazione</small><br>
+                                <strong>{{ winner.drawn_at|date:"d/m/Y H:i" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Sales chart
+{% if sales_dates and sales_counts %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_dates|safe }},
+            datasets: [{
+                label: 'Biglietti Venduti',
+                data: {{ sales_counts|safe }},
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                yAxisID: 'y',
+            }, {
+                label: 'Ricavo Giornaliero (€)',
+                data: {{ daily_revenues|safe }},
+                borderColor: 'rgb(118, 75, 162)',
+                backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                tension: 0.4,
+                yAxisID: 'y1',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Biglietti Venduti'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Ricavo (€)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                },
+            }
+        }
+    });
+});
+{% endif %}
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.card {
+    border-radius: 12px;
+}
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+.code {
+    font-family: 'Courier New', monospace;
+}
+.table {
+    margin-bottom: 0;
+}
+.alert-sm {
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
