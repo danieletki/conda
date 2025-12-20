@@ -59,6 +59,28 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.id} - {self.user.username} - {self.amount} {self.currency}"
+    
+    def get_status_color(self):
+        """Get bootstrap color class for status badge"""
+        status_colors = {
+            'pending': 'warning',
+            'completed': 'success',
+            'failed': 'danger',
+            'refunded': 'info',
+            'cancelled': 'secondary'
+        }
+        return status_colors.get(self.status, 'secondary')
+    
+    def get_status_display(self):
+        """Get display name for status"""
+        status_display = {
+            'pending': 'In Attesa',
+            'completed': 'Completato',
+            'failed': 'Fallito',
+            'refunded': 'Rimborsato',
+            'cancelled': 'Cancellato'
+        }
+        return status_display.get(self.status, self.status)
 
     @property
     def processing_fee_amount(self):

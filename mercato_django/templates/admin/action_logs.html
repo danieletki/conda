@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Action Logs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">Admin Action Logs</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_panel:dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Action Logs</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="actionTypeFilter" class="form-label">Action Type</label>
+                            <select class="form-select" id="actionTypeFilter" name="action_type">
+                                <option value="">All Action Types</option>
+                                <option value="kyc_approve" {% if action_type == 'kyc_approve' %}selected{% endif %}>KYC Approval</option>
+                                <option value="kyc_reject" {% if action_type == 'kyc_reject' %}selected{% endif %}>KYC Rejection</option>
+                                <option value="lottery_approve" {% if action_type == 'lottery_approve' %}selected{% endif %}>Lottery Approval</option>
+                                <option value="lottery_reject" {% if action_type == 'lottery_reject' %}selected{% endif %}>Lottery Rejection</option>
+                                <option value="payment_refund" {% if action_type == 'payment_refund' %}selected{% endif %}>Payment Refund</option>
+                                <option value="banner_create" {% if action_type == 'banner_create' %}selected{% endif %}>Banner Creation</option>
+                                <option value="banner_update" {% if action_type == 'banner_update' %}selected{% endif %}>Banner Update</option>
+                                <option value="banner_delete" {% if action_type == 'banner_delete' %}selected{% endif %}>Banner Deletion</option>
+                                <option value="csv_export" {% if action_type == 'csv_export' %}selected{% endif %}>CSV Export</option>
+                                <option value="system_setting" {% if action_type == 'system_setting' %}selected{% endif %}>System Setting</option>
+                                <option value="other" {% if action_type == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'admin_panel:action_logs' %}" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Logs Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Admin Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if logs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Admin</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>Related</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                        <tr>
+                                            <td>{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                {% if log.admin_user %}
+                                                    <div class="d-flex align-items-center">
+                                                        {% if log.admin_user.profile.profile_image %}
+                                                            <img src="{{ log.admin_user.profile.profile_image.url }}" alt="{{ log.admin_user.username }}" class="rounded-circle me-2" width="30" height="30">
+                                                        {% else %}
+                                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px;">
+                                                                {{ log.admin_user.username|slice:":2"|upper }}
+                                                            </div>
+                                                        {% endif %}
+                                                        <div>
+                                                            <strong>{{ log.admin_user.username }}</strong><br>
+                                                            <small class="text-muted">{{ log.admin_user.email }}</small>
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted">System</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ log.get_action_type_color }}">
+                                                    {{ log.get_action_type_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ log.action_description }}</td>
+                                            <td>
+                                                {% if log.related_model %}
+                                                    {{ log.related_model }}: {{ log.related_id }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ log.ip_address }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">{{ num }}</a></li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No admin actions found with the current filters.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Badge colors for different action types */
+    .badge-bg-kyc_approve { background-color: #28a745; }
+    .badge-bg-kyc_reject { background-color: #dc3545; }
+    .badge-bg-lottery_approve { background-color: #20c997; }
+    .badge-bg-lottery_reject { background-color: #fd7e14; }
+    .badge-bg-payment_refund { background-color: #6c757d; }
+    .badge-bg-banner_create { background-color: #0d6efd; }
+    .badge-bg-banner_update { background-color: #0dcaf0; }
+    .badge-bg-banner_delete { background-color: #6c757d; }
+    .badge-bg-csv_export { background-color: #6f42c1; }
+    .badge-bg-system_setting { background-color: #198754; }
+    .badge-bg-other { background-color: #6c757d; }
+</style>
+{% endblock %}

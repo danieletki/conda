@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from django.core.management.base import BaseCommand
 import logging
 
 from .models import Notification, EmailNotification, NotificationSettings

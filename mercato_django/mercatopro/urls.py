@@ -12,7 +12,7 @@ urlpatterns = [
     path('lotteries/', include('mercato_lotteries.urls')),
     path('payments/', include('mercato_payments.urls')),
     path('notifications/', include('mercato_notifications.urls')),
-    path('admin-panel/', include('mercato_admin.urls')),
+    path('admin-panel/', include(('mercato_admin.urls', 'admin_panel'), namespace='admin_panel')),
 ]
 
 if settings.DEBUG:

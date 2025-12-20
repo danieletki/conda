@@ -98,6 +98,28 @@ class Lottery(models.Model):
     
     def __str__(self):
         return self.title
+    
+    def get_status_color(self):
+        """Get bootstrap color class for status badge"""
+        status_colors = {
+            'draft': 'secondary',
+            'active': 'success',
+            'closed': 'info',
+            'drawn': 'primary',
+            'completed': 'dark'
+        }
+        return status_colors.get(self.status, 'secondary')
+    
+    def get_status_display(self):
+        """Get display name for status"""
+        status_display = {
+            'draft': 'Bozza',
+            'active': 'Attiva',
+            'closed': 'Chiusa',
+            'drawn': 'Estrazione Eseguita',
+            'completed': 'Completata'
+        }
+        return status_display.get(self.status, self.status)
 
     def get_absolute_url(self):
         return reverse('lotteries:detail', kwargs={'lottery_id': self.id})

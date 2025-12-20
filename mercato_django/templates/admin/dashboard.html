@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Admin Dashboard</h1>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- User Statistics -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Users</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">{{ total_users }}</h2>
+                            <p class="text-muted mb-0">Total Users</p>
+                        </div>
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Verified:</span>
+                            <span class="font-weight-bold text-success">{{ verified_users }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Unverified:</span>
+                            <span class="font-weight-bold text-warning">{{ unverified_users }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lottery Statistics -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Lotteries</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">{{ total_lotteries }}</h2>
+                            <p class="text-muted mb-0">Total Lotteries</p>
+                        </div>
+                        <i class="fas fa-ticket-alt fa-2x text-success"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Active:</span>
+                            <span class="font-weight-bold text-success">{{ active_lotteries }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Closed:</span>
+                            <span class="font-weight-bold text-info">{{ closed_lotteries }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Completed:</span>
+                            <span class="font-weight-bold text-primary">{{ completed_lotteries }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Statistics -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Payments</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">{{ total_payments }}</h2>
+                            <p class="text-muted mb-0">Total Payments</p>
+                        </div>
+                        <i class="fas fa-credit-card fa-2x text-info"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Completed:</span>
+                            <span class="font-weight-bold text-success">{{ completed_payments }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Revenue:</span>
+                            <span class="font-weight-bold text-primary">€{{ total_revenue|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Commission Statistics -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Commissions</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">€{{ total_commissions|floatformat:2 }}</h2>
+                            <p class="text-muted mb-0">Total Commissions</p>
+                        </div>
+                        <i class="fas fa-percentage fa-2x text-warning"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {% if total_revenue > 0 %}{{ total_commissions|div:total_revenue|mul:100|floatformat:0 }}{% else %}0{% endif %}%" 
+                                 aria-valuenow="{% if total_revenue > 0 %}{{ total_commissions|div:total_revenue|mul:100|floatformat:0 }}{% else %}0{% endif %}" 
+                                 aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted">Commission rate: {% if total_revenue > 0 %}{{ total_commissions|div:total_revenue|mul:100|floatformat:1 }}%{% else %}0%{% endif %}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin_panel:kyc_pending' %}" class="card text-white bg-warning h-100 text-decoration-none">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0">{{ kyc_pending_count }}</h3>
+                                            <p class="mb-0">KYC Pending</p>
+                                        </div>
+                                        <i class="fas fa-id-card fa-2x"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin_panel:lottery_moderation' %}" class="card text-white bg-info h-100 text-decoration-none">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0">{{ lotteries_pending }}</h3>
+                                            <p class="mb-0">Lotteries Pending</p>
+                                        </div>
+                                        <i class="fas fa-gavel fa-2x"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin_panel:payment_reports' %}" class="card text-white bg-success h-100 text-decoration-none">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0">{{ total_payments }}</h3>
+                                            <p class="mb-0">Payment Reports</p>
+                                        </div>
+                                        <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin_panel:banners' %}" class="card text-white bg-primary h-100 text-decoration-none">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0"><i class="fas fa-bullhorn"></i></h3>
+                                            <p class="mb-0">Manage Banners</p>
+                                        </div>
+                                        <i class="fas fa-bullhorn fa-2x"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activities -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Users</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_users %}
+                        <div class="list-group">
+                            {% for user in recent_users %}
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">{{ user.username }}</h6>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                        </div>
+                                        <span class="badge {% if user.is_verified %}bg-success{% else %}bg-warning{% endif %}">
+                                            {% if user.is_verified %}Verified{% else %}Unverified{% endif %}
+                                        </span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent users found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Lotteries</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_lotteries %}
+                        <div class="list-group">
+                            {% for lottery in recent_lotteries %}
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">{{ lottery.title }}</h6>
+                                            <small class="text-muted">by {{ lottery.seller.username }}</small>
+                                        </div>
+                                        <span class="badge bg-{{ lottery.get_status_color }}">
+                                            {{ lottery.get_status_display }}
+                                        </span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent lotteries found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Payments -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Payments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_payments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in recent_payments %}
+                                        <tr>
+                                            <td>{{ payment.id|slice:":8" }}...</td>
+                                            <td>{{ payment.user.username }}</td>
+                                            <td>€{{ payment.amount|floatformat:2 }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ payment.get_status_color }}">
+                                                    {{ payment.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ payment.created_at|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent payments found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .list-group-item {
+        transition: background-color 0.2s;
+    }
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
