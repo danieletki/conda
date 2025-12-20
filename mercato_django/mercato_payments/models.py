@@ -194,6 +194,9 @@ class PaymentTransaction(models.Model):
     paypal_fee_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     currency = models.CharField(max_length=3, default='EUR')
     
+    # Store all ticket IDs for this transaction (when buying multiple tickets)
+    ticket_ids = models.JSONField(default=list, blank=True)
+    
     # Timestamps for status changes
     payment_completed_at = models.DateTimeField(null=True, blank=True)
     refunded_at = models.DateTimeField(null=True, blank=True)
