@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}KYC Pending - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">KYC Pending Approval</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_panel:dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">KYC Pending</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Pending KYC Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if kyc_documents %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Document Type</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in kyc_documents %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if doc.user.profile.profile_image %}
+                                                        <img src="{{ doc.user.profile.profile_image.url }}" alt="{{ doc.user.username }}" class="rounded-circle me-2" width="40" height="40">
+                                                    {% else %}
+                                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                            {{ doc.user.username|slice:":2"|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ doc.user.username }}</strong><br>
+                                                        <small class="text-muted">{{ doc.user.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ doc.get_document_type_display }}</td>
+                                            <td>{{ doc.uploaded_at|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-success approve-btn" 
+                                                            data-doc-id="{{ doc.id }}" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#approveModal" 
+                                                            title="Approve">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger reject-btn" 
+                                                            data-doc-id="{{ doc.id }}" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#rejectModal" 
+                                                            title="Reject">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    <a href="{{ doc.document_file.url }}" 
+                                                       class="btn btn-sm btn-info" 
+                                                       target="_blank" 
+                                                       title="View Document">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No pending KYC documents found.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="approveForm" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="approveModalLabel">Approve KYC</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="document_id" id="approveDocumentId">
+                    <div class="mb-3">
+                        <label for="approveNotes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="approveNotes" name="notes" rows="3" placeholder="Add any additional notes..."></textarea>
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i> Approving this KYC will mark the user as verified and allow them to create lotteries.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve KYC</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="rejectForm" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectModalLabel">Reject KYC</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="document_id" id="rejectDocumentId">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectionReason" name="rejection_reason" rows="3" required placeholder="Please provide a reason for rejection..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejectNotes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="rejectNotes" name="notes" rows="3" placeholder="Add any additional notes..."></textarea>
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i> The user will be notified via email with the rejection reason.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject KYC</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Handle approve button click
+$(document).ready(function() {
+    $('.approve-btn').click(function() {
+        var docId = $(this).data('doc-id');
+        $('#approveDocumentId').val(docId);
+        
+        // Update form action
+        $('#approveForm').attr('action', '/admin-panel/kyc-approve/' + docId + '/');
+    });
+    
+    $('.reject-btn').click(function() {
+        var docId = $(this).data('doc-id');
+        $('#rejectDocumentId').val(docId);
+        
+        // Update form action
+        $('#rejectForm').attr('action', '/admin-panel/kyc-reject/' + docId + '/');
+    });
+    
+    // Handle form submissions with AJAX
+    $('#approveForm').submit(function(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var url = form.attr('action');
+        var data = form.serialize();
+        
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Close modal
+                    $('#approveModal').modal('hide');
+                    
+                    // Show success message
+                    toastr.success(response.message);
+                    
+                    // Refresh page after 2 seconds
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    toastr.error(response.error || 'Error approving KYC');
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Error approving KYC';
+                toastr.error(errorMessage);
+            }
+        });
+    });
+    
+    $('#rejectForm').submit(function(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var url = form.attr('action');
+        var data = form.serialize();
+        
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Close modal
+                    $('#rejectModal').modal('hide');
+                    
+                    // Show success message
+                    toastr.success(response.message);
+                    
+                    // Refresh page after 2 seconds
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    toastr.error(response.error || 'Error rejecting KYC');
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Error rejecting KYC';
+                toastr.error(errorMessage);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

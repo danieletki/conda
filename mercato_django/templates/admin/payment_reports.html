@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Reports - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">Payment Reports</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_panel:dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Payment Reports</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                                <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'admin_panel:payment_reports' %}" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payment Statistics</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3 class="mb-0">€{{ total_amount|floatformat:2 }}</h3>
+                                    <p class="text-muted mb-0">Total Amount</p>
+                                </div>
+                                <i class="fas fa-euro-sign fa-2x text-success"></i>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3 class="mb-0">€{{ total_commissions|floatformat:2 }}</h3>
+                                    <p class="text-muted mb-0">Total Commissions</p>
+                                </div>
+                                <i class="fas fa-percentage fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Export Data</h5>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'admin_panel:export_csv' 'payments' %}" class="btn btn-primary">
+                            <i class="fas fa-file-csv"></i> Export Payments CSV
+                        </a>
+                        <a href="{% url 'admin_panel:export_csv' 'users' %}" class="btn btn-info">
+                            <i class="fas fa-file-csv"></i> Export Users CSV
+                        </a>
+                        <a href="{% url 'admin_panel:export_csv' 'lotteries' %}" class="btn btn-success">
+                            <i class="fas fa-file-csv"></i> Export Lotteries CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payments Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Transactions</h5>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in payments %}
+                                        <tr>
+                                            <td>{{ payment.id|slice:":8" }}...</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if payment.user.profile.profile_image %}
+                                                        <img src="{{ payment.user.profile.profile_image.url }}" alt="{{ payment.user.username }}" class="rounded-circle me-2" width="30" height="30">
+                                                    {% else %}
+                                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px;">
+                                                            {{ payment.user.username|slice:":2"|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ payment.user.username }}</strong><br>
+                                                        <small class="text-muted">{{ payment.user.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>€{{ payment.amount|floatformat:2 }}</td>
+                                            <td>{{ payment.payment_method.name }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ payment.get_status_color }}">
+                                                    {{ payment.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ payment.created_at|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                <a href="#" class="btn btn-sm btn-info" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">{{ num }}</a></li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No payments found with the current filters.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge-bg-pending { background-color: #6c757d; }
+    .badge-bg-completed { background-color: #28a745; }
+    .badge-bg-failed { background-color: #dc3545; }
+    .badge-bg-refunded { background-color: #ffc107; }
+    .badge-bg-cancelled { background-color: #6c757d; }
+</style>
+{% endblock %}

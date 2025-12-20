@@ -1,188 +1,184 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
-from decimal import Decimal
+import uuid
 
 User = get_user_model()
 
 
-class AdminSettings(models.Model):
+class AdminActionLog(models.Model):
     """
-    Global admin settings for the platform
+    Log of all admin actions for auditing
     """
-    site_name = models.CharField(max_length=100, default='MercatoPro')
-    site_description = models.TextField(blank=True)
-    contact_email = models.EmailField()
-    support_phone = models.CharField(max_length=20, blank=True)
-    maintenance_mode = models.BooleanField(default=False)
-    registration_enabled = models.BooleanField(default=True)
-    max_tickets_per_lottery = models.PositiveIntegerField(default=10000)
-    default_ticket_price = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
-    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=22.00)
-    currency = models.CharField(max_length=3, default='EUR')
-    timezone = models.CharField(max_length=50, default='Europe/Rome')
-    terms_of_service = models.TextField(blank=True)
-    privacy_policy = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = 'Admin Settings'
-        verbose_name_plural = 'Admin Settings'
-
-    def __str__(self):
-        return f"Site Settings - {self.site_name}"
-
-
-class SystemLog(models.Model):
-    """
-    System activity logs for admin monitoring
-    """
-    LOG_LEVEL_CHOICES = [
-        ('DEBUG', 'Debug'),
-        ('INFO', 'Info'),
-        ('WARNING', 'Warning'),
-        ('ERROR', 'Error'),
-        ('CRITICAL', 'Critical'),
+    ACTION_TYPES = [
+        ('kyc_approve', 'Approvazione KYC'),
+        ('kyc_reject', 'Rifiuto KYC'),
+        ('lottery_approve', 'Approvazione Lotteria'),
+        ('lottery_reject', 'Rifiuto Lotteria'),
+        ('payment_refund', 'Rimborso Pagamento'),
+        ('banner_create', 'Creazione Banner'),
+        ('banner_update', 'Aggiornamento Banner'),
+        ('banner_delete', 'Eliminazione Banner'),
+        ('csv_export', 'Esportazione CSV'),
+        ('system_setting', 'Modifica Impostazioni'),
+        ('other', 'Altro'),
     ]
-    
-    ACTION_CHOICES = [
-        ('user_registered', 'User Registered'),
-        ('user_login', 'User Login'),
-        ('lottery_created', 'Lottery Created'),
-        ('lottery_ended', 'Lottery Ended'),
-        ('payment_processed', 'Payment Processed'),
-        ('ticket_purchased', 'Ticket Purchased'),
-        ('notification_sent', 'Notification Sent'),
-        ('admin_action', 'Admin Action'),
-        ('system_event', 'System Event'),
-    ]
-    
-    level = models.CharField(max_length=10, choices=LOG_LEVEL_CHOICES, default='INFO')
-    action = models.CharField(max_length=30, choices=ACTION_CHOICES, default='system_event')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='system_logs')
-    description = models.TextField()
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    admin_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='admin_actions')
+    action_type = models.CharField(max_length=50, choices=ACTION_TYPES)
+    action_description = models.TextField()
+    related_model = models.CharField(max_length=100, blank=True)  # e.g., 'CustomUser', 'Lottery', 'Payment'
+    related_id = models.CharField(max_length=100, blank=True)  # ID of the related object
+    metadata = models.JSONField(default=dict, blank=True)  # Additional data
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
-    metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"[{self.level}] {self.action} - {self.user} - {self.created_at}"
+        return f"{self.get_action_type_display()} by {self.admin_user.username if self.admin_user else 'System'}"
+    
+    def get_action_type_color(self):
+        """Get bootstrap color class for action type badge"""
+        action_colors = {
+            'kyc_approve': 'success',
+            'kyc_reject': 'danger',
+            'lottery_approve': 'success',
+            'lottery_reject': 'warning',
+            'payment_refund': 'info',
+            'banner_create': 'primary',
+            'banner_update': 'info',
+            'banner_delete': 'danger',
+            'csv_export': 'secondary',
+            'system_setting': 'warning',
+            'other': 'dark'
+        }
+        return action_colors.get(self.action_type, 'secondary')
 
     class Meta:
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['action', 'created_at']),
-            models.Index(fields=['user', 'created_at']),
-            models.Index(fields=['level', 'created_at']),
-        ]
+        verbose_name = 'Admin Action Log'
+        verbose_name_plural = 'Admin Action Logs'
 
 
-class SiteStatistics(models.Model):
+class SiteBanner(models.Model):
     """
-    Site statistics for dashboard
+    Site-wide banners and announcements
     """
-    date = models.DateField(unique=True)
-    total_users = models.PositiveIntegerField(default=0)
-    new_users = models.PositiveIntegerField(default=0)
-    active_users = models.PositiveIntegerField(default=0)
-    total_lotteries = models.PositiveIntegerField(default=0)
-    active_lotteries = models.PositiveIntegerField(default=0)
-    total_tickets_sold = models.PositiveIntegerField(default=0)
-    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    total_payments = models.PositiveIntegerField(default=0)
-    successful_payments = models.PositiveIntegerField(default=0)
-    total_notifications = models.PositiveIntegerField(default=0)
-    sent_notifications = models.PositiveIntegerField(default=0)
-    system_errors = models.PositiveIntegerField(default=0)
+    BANNER_TYPES = [
+        ('info', 'Informazione'),
+        ('success', 'Successo'),
+        ('warning', 'Avviso'),
+        ('error', 'Errore'),
+        ('promotion', 'Promozione'),
+    ]
+
+    BANNER_POSITIONS = [
+        ('top', 'Top'),
+        ('bottom', 'Bottom'),
+        ('modal', 'Modal'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    banner_type = models.CharField(max_length=20, choices=BANNER_TYPES, default='info')
+    position = models.CharField(max_length=20, choices=BANNER_POSITIONS, default='top')
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True, blank=True)
+    link_url = models.URLField(blank=True)
+    link_text = models.CharField(max_length=100, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_banners')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Statistics for {self.date}"
+        return f"Banner: {self.title} ({self.get_banner_type_display()})"
+    
+    def get_banner_type_color(self):
+        """Get bootstrap color class for banner type badge"""
+        banner_colors = {
+            'info': 'info',
+            'success': 'success',
+            'warning': 'warning',
+            'error': 'danger',
+            'promotion': 'primary'
+        }
+        return banner_colors.get(self.banner_type, 'info')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Site Banner'
+        verbose_name_plural = 'Site Banners'
 
     @property
-    def conversion_rate(self):
-        """Calculate payment success rate"""
-        if self.total_payments == 0:
-            return 0
-        return (self.successful_payments / self.total_payments) * 100
+    def is_currently_active(self):
+        """Check if banner is currently active based on date range"""
+        now = timezone.now()
+        if not self.is_active:
+            return False
+        if self.end_date and self.end_date < now:
+            return False
+        return self.start_date <= now
 
-    class Meta:
-        ordering = ['-date']
 
-
-class Report(models.Model):
+class KYCDocument(models.Model):
     """
-    Admin-generated reports
+    KYC documents uploaded by users
     """
-    REPORT_TYPE_CHOICES = [
-        ('user_activity', 'User Activity Report'),
-        ('lottery_performance', 'Lottery Performance'),
-        ('financial_summary', 'Financial Summary'),
-        ('payment_analysis', 'Payment Analysis'),
-        ('notification_stats', 'Notification Statistics'),
-        ('system_health', 'System Health Report'),
+    DOCUMENT_TYPES = [
+        ('id_card', 'Carta d\'Identità'),
+        ('passport', 'Passaporto'),
+        ('driver_license', 'Patente di Guida'),
+        ('utility_bill', 'Bolla Utente'),
+        ('other', 'Altro'),
     ]
-    
-    TYPE_CHOICES = [
-        ('daily', 'Daily'),
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-        ('custom', 'Custom Period'),
-    ]
-    
+
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('generating', 'Generating'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
+        ('pending', 'In Attesa'),
+        ('approved', 'Approvato'),
+        ('rejected', 'Rifiutato'),
     ]
-    
-    title = models.CharField(max_length=200)
-    report_type = models.CharField(max_length=20, choices=REPORT_TYPE_CHOICES)
-    period_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='monthly')
-    start_date = models.DateField()
-    end_date = models.DateField()
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kyc_documents')
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    document_file = models.FileField(upload_to='kyc_documents/')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    generated_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='generated_reports')
-    file_path = models.FileField(upload_to='reports/', null=True, blank=True)
-    parameters = models.JSONField(default=dict, blank=True)
-    generated_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    rejection_reason = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_kyc_documents')
+    notes = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.title} ({self.start_date} - {self.end_date})"
+        return f"KYC Document: {self.get_document_type_display()} for {self.user.username}"
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-uploaded_at']
+        verbose_name = 'KYC Document'
+        verbose_name_plural = 'KYC Documents'
 
+    def approve(self, admin_user, notes=''):
+        """Approve KYC document"""
+        self.status = 'approved'
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.notes = notes
+        self.save()
+        
+        # Mark user as verified
+        self.user.is_verified = True
+        self.user.save()
+        
+        return True
 
-class Backup(models.Model):
-    """
-    Database backup management
-    """
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('in_progress', 'In Progress'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-    ]
-    
-    name = models.CharField(max_length=100)
-    file_path = models.FileField(upload_to='backups/', null=True, blank=True)
-    file_size = models.BigIntegerField(default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    error_message = models.TextField(blank=True)
-    initiated_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='initiated_backups')
-    completed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.name} - {self.status}"
-
-    class Meta:
-        ordering = ['-created_at']
+    def reject(self, admin_user, rejection_reason, notes=''):
+        """Reject KYC document"""
+        self.status = 'rejected'
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.rejection_reason = rejection_reason
+        self.notes = notes
+        self.save()
+        
+        return True

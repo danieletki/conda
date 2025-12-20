@@ -17,7 +17,7 @@ class NotificationCategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'color_display', 'icon', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at']
     
     def color_display(self, obj):
         return format_html(
