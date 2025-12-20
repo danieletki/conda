@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Impostazioni KYC - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-user-shield me-3 text-primary"></i>Impostazioni KYC
+                    </h1>
+                    <p class="text-muted mt-2">Gestisci i documenti di verifica e lo stato del tuo account</p>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:seller_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Torna alla Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Current KYC Status -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-check me-2"></i>Stato Verifica KYC
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            {% if kyc_info.is_verified %}
+                                <div class="alert alert-success border-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-check-circle fa-2x me-3"></i>
+                                        <div>
+                                            <h5 class="alert-heading mb-1">KYC Approvato!</h5>
+                                            <p class="mb-0">
+                                                La tua verifica KYC è stata completata con successo. 
+                                                Puoi creare e gestire lotterie senza restrizioni.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning border-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-clock fa-2x me-3"></i>
+                                        <div>
+                                            <h5 class="alert-heading mb-1">In Attesa di Approvazione</h5>
+                                            <p class="mb-0">
+                                                La tua verifica KYC è in fase di revisione. 
+                                                Riceverai una notifica via email appena sarà completata.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                {% if kyc_info.is_verified %}
+                                    <i class="fas fa-user-check fa-4x text-success"></i>
+                                {% else %}
+                                    <i class="fas fa-user-clock fa-4x text-warning"></i>
+                                {% endif %}
+                            </div>
+                            <h5 class="mb-0">
+                                <span class="badge bg-{{ kyc_info.is_verified|yesno:'success,warning' }} fs-5">
+                                    {{ kyc_info.status }}
+                                </span>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Upload -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Upload Documenti
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Documenti Richiesti:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Documento d'identità (Carta d'Identità, Passaporto, Patente)</li>
+                            <li>Proof of Address (bolletta recente, estratto conto bancario)</li>
+                            <li>Foto selfie con documento d'identità</li>
+                        </ul>
+                    </div>
+
+                    {% if not kyc_info.is_verified %}
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="mb-4">
+                                <label for="id_document_type" class="form-label">
+                                    <strong>Tipo di Documento</strong>
+                                </label>
+                                <select class="form-select" id="id_document_type" name="document_type" required>
+                                    <option value="">Seleziona tipo documento</option>
+                                    <option value="identity_card">Carta d'Identità</option>
+                                    <option value="passport">Passaporto</option>
+                                    <option value="driving_license">Patente di Guida</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_document_front" class="form-label">
+                                    <strong>Fronte Documento</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="file" class="form-control" id="id_document_front" 
+                                       name="document_front" accept="image/*,.pdf" required>
+                                <div class="form-text">
+                                    Carica il fronte del tuo documento d'identità
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_document_back" class="form-label">
+                                    <strong>Retro Documento</strong>
+                                </label>
+                                <input type="file" class="form-control" id="id_document_back" 
+                                       name="document_back" accept="image/*,.pdf">
+                                <div class="form-text">
+                                    Carica il retro del documento (se applicabile)
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_proof_of_address" class="form-label">
+                                    <strong>Proof of Address</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="file" class="form-control" id="id_proof_of_address" 
+                                       name="proof_of_address" accept="image/*,.pdf" required>
+                                <div class="form-text">
+                                    Bolletta recente (non più vecchia di 3 mesi) o estratto conto bancario
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_selfie" class="form-label">
+                                    <strong>Selfie con Documento</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="file" class="form-control" id="id_selfie" 
+                                       name="selfie" accept="image/*" required>
+                                <div class="form-text">
+                                    Fai un selfie tenendo il documento d'identità vicino al viso
+                                </div>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-paper-plane me-2"></i>Invia Documenti per Verifica
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h5 class="text-success mb-3">Verifica Completata!</h5>
+                            <p class="text-muted">
+                                La tua verifica KYC è stata approvata. Non è necessario alcun ulteriore upload.
+                            </p>
+                            <a href="{% url 'accounts:seller_create_lottery' %}" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>Crea Nuova Lotteria
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-lg-4">
+            <!-- KYC Benefits -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-star text-warning me-2"></i>Vantaggi KYC
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Crea lotterie illimitate</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Ritiro fondi più rapido</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Maggior fiducia degli acquirenti</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Accesso a statistiche avanzate</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Priorità nel supporto</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Processing Time -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Tempi di Verifica
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="mb-2">
+                            <i class="fas fa-hourglass-half fa-2x text-info"></i>
+                        </div>
+                        <h5 class="text-info mb-1">24-48 Ore</h5>
+                        <small class="text-muted">Tempo medio di verifica</small>
+                    </div>
+                    <div class="alert alert-warning alert-sm py-2">
+                        <small class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Nei periodi di alta richiesta potrebbero servire fino a 72 ore
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-headset me-2"></i>Supporto KYC
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Hai problemi con la verifica KYC? Il nostro team di supporto è qui per aiutarti.
+                    </p>
+                    <div class="d-grid">
+                        <a href="{% url 'accounts:contact' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-envelope me-2"></i>Contatta Supporto
+                        </a>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <strong>Documentazione richiesta:</strong><br>
+                        • Documento valido e in corso di validità<br>
+                        • Proof of address recente<br>
+                        • Selfie chiaro e leggibile
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 12px;
+}
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+.form-control, .form-select {
+    border-radius: 8px;
+}
+.btn {
+    border-radius: 8px;
+}
+.btn-lg {
+    padding: 0.75rem 2rem;
+}
+.alert {
+    border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview uploaded images
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Could add preview functionality here
+                    console.log('Image preview loaded for:', input.name);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.classList.add('is-invalid');
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Compila tutti i campi obbligatori.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

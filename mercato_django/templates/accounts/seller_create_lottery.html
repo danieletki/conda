@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crea Nuova Lotteria - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-plus-circle me-3 text-primary"></i>Crea Nuova Lotteria
+                    </h1>
+                    <p class="text-muted mt-2">Inserisci i dettagli per creare una nuova lotteria</p>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:seller_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Torna alla Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+                {% csrf_token %}
+                
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Informazioni Base
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Title -->
+                    <div class="mb-4">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">
+                            {{ form.title.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.help_text %}
+                            <div class="form-text">{{ form.title.help_text }}</div>
+                        {% endif %}
+                        {% if form.title.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.title.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                            <div class="form-text">{{ form.description.help_text }}</div>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Item Value and Items Count -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.item_value.id_for_label }}" class="form-label">
+                                {{ form.item_value.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                {{ form.item_value }}
+                            </div>
+                            {% if form.item_value.help_text %}
+                                <div class="form-text">{{ form.item_value.help_text }}</div>
+                            {% endif %}
+                            {% if form.item_value.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.item_value.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.items_count.id_for_label }}" class="form-label">
+                                {{ form.items_count.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.items_count }}
+                            {% if form.items_count.help_text %}
+                                <div class="form-text">{{ form.items_count.help_text }}</div>
+                            {% endif %}
+                            {% if form.items_count.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.items_count.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Expiration Date -->
+                    <div class="mb-4">
+                        <label for="{{ form.expiration_date.id_for_label }}" class="form-label">
+                            {{ form.expiration_date.label }}
+                        </label>
+                        {{ form.expiration_date }}
+                        {% if form.expiration_date.help_text %}
+                            <div class="form-text">{{ form.expiration_date.help_text }}</div>
+                        {% endif %}
+                        {% if form.expiration_date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.expiration_date.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Images Section -->
+                <div class="card-header bg-white border-top">
+                    <h5 class="mb-0">
+                        <i class="fas fa-images me-2"></i>Immagini della Lotteria
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Carica fino a 3 immagini dell'oggetto in palio. La prima immagine sarà quella principale.
+                    </div>
+
+                    <div class="row">
+                        <!-- Image 1 -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                        <h6 class="mb-2">Immagine 1 (Principale)</h6>
+                                        <span class="badge bg-danger">Richiesta</span>
+                                    </div>
+                                    {{ form.image_1_file }}
+                                    {% if form.image_1_file.errors %}
+                                        <div class="invalid-feedback d-block mt-2">
+                                            {{ form.image_1_file.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="{{ form.image_1_description.id_for_label }}" class="form-label">
+                                    {{ form.image_1_description.label }}
+                                </label>
+                                {{ form.image_1_description }}
+                                {% if form.image_1_description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.image_1_description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Image 2 -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                        <h6 class="mb-2">Immagine 2</h6>
+                                        <span class="badge bg-secondary">Opzionale</span>
+                                    </div>
+                                    {{ form.image_2_file }}
+                                    {% if form.image_2_file.errors %}
+                                        <div class="invalid-feedback d-block mt-2">
+                                            {{ form.image_2_file.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="{{ form.image_2_description.id_for_label }}" class="form-label">
+                                    {{ form.image_2_description.label }}
+                                </label>
+                                {{ form.image_2_description }}
+                                {% if form.image_2_description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.image_2_description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Image 3 -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                        <h6 class="mb-2">Immagine 3</h6>
+                                        <span class="badge bg-secondary">Opzionale</span>
+                                    </div>
+                                    {{ form.image_3_file }}
+                                    {% if form.image_3_file.errors %}
+                                        <div class="invalid-feedback d-block mt-2">
+                                            {{ form.image_3_file.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="{{ form.image_3_description.id_for_label }}" class="form-label">
+                                    {{ form.image_3_description.label }}
+                                </label>
+                                {{ form.image_3_description }}
+                                {% if form.image_3_description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.image_3_description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Le immagini verranno compresse automaticamente per ottimizzare le prestazioni.
+                            </small>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Crea Lotteria
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-lg-4">
+            <!-- Commission Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-percentage me-2"></i>Commissioni
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Commissione piattaforma: <strong>10%</strong></p>
+                    <p class="mb-2">Commissione PayPal: <strong>2.9% + €0.30</strong></p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Totale commissioni: ~12.9% + €0.30</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Requirements -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i>Requisiti
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>KYC approvato</li>
+                        <li>Immagine principale richiesta</li>
+                        <li>Valore minimo: €1.00</li>
+                        <li>Minimo 1 biglietto</li>
+                        <li>Descrizione dettagliata</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- KYC Status -->
+            {% if not request.user.is_verified %}
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>KYC Richiesto
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">
+                        Per poter creare lotterie, devi prima completare la verifica KYC.
+                    </p>
+                    <a href="{% url 'accounts:seller_kyc_settings' %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-upload me-2"></i>Upload Documenti
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 12px;
+}
+.form-control, .form-control:focus {
+    border-radius: 8px;
+    box-shadow: none;
+}
+.input-group-text {
+    border-radius: 8px 0 0 8px;
+}
+.btn {
+    border-radius: 8px;
+}
+.btn-lg {
+    padding: 0.75rem 2rem;
+}
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+</style>
+
+<script>
+// Preview images before upload
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInputs = document.querySelectorAll('input[type="file"]');
+    
+    imageInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // You could add preview functionality here
+                    console.log('Image loaded:', file.name);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+    
+    // Calculate ticket price dynamically
+    const itemValueInput = document.querySelector('#id_item_value');
+    const itemsCountInput = document.querySelector('#id_items_count');
+    
+    function updateTicketPrice() {
+        const itemValue = parseFloat(itemValueInput.value) || 0;
+        const itemsCount = parseInt(itemsCountInput.value) || 0;
+        
+        if (itemValue > 0 && itemsCount > 0) {
+            const ticketPrice = (itemValue / itemsCount).toFixed(2);
+            // You could display this dynamically
+            console.log('Ticket price:', ticketPrice);
+        }
+    }
+    
+    if (itemValueInput && itemsCountInput) {
+        itemValueInput.addEventListener('input', updateTicketPrice);
+        itemsCountInput.addEventListener('input', updateTicketPrice);
+    }
+});
+</script>
+{% endblock %}

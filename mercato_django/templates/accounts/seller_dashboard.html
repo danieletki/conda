@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Venditore - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="display-6 mb-2">
+                                <i class="fas fa-store me-3"></i>Dashboard Venditore
+                            </h1>
+                            <p class="mb-0">Gestisci le tue lotterie e monitora le tue performance</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="{% url 'accounts:seller_create_lottery' %}" class="btn btn-light btn-lg">
+                                <i class="fas fa-plus me-2"></i>Nuova Lotteria
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KYC Status Alert -->
+    {% if not kyc_status.can_create_lottery %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-start-0 border-end-0 rounded-0">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Verifica KYC Richiesta!</strong> 
+                        Devi completare la verifica KYC per poter creare nuove lotterie.
+                    </div>
+                    <div class="col-auto">
+                        <a href="{% url 'accounts:seller_kyc_settings' %}" class="btn btn-warning">
+                            <i class="fas fa-upload me-2"></i>Upload Documenti
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded-circle mb-3 mx-auto">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <h3 class="h5 text-muted mb-2">Lotterie Pubblicate</h3>
+                    <p class="display-6 fw-bold text-dark mb-0">{{ total_lotteries_created }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success rounded-circle mb-3 mx-auto">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h3 class="h5 text-muted mb-2">Biglietti Venduti</h3>
+                    <p class="display-6 fw-bold text-dark mb-0">{{ total_tickets_sold }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info rounded-circle mb-3 mx-auto">
+                        <i class="fas fa-euro-sign"></i>
+                    </div>
+                    <h3 class="h5 text-muted mb-2">Guadagno Totale</h3>
+                    <p class="display-6 fw-bold text-dark mb-0">
+                        € {{ total_earnings|default:"0.00" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-{{ kyc_status.can_create_lottery|yesno:'success,warning' }} 
+                                bg-opacity-10 text-{{ kyc_status.can_create_lottery|yesno:'success,warning' }} 
+                                rounded-circle mb-3 mx-auto">
+                        <i class="fas fa-{{ kyc_status.can_create_lottery|yesno:'check-circle,clock' }}"></i>
+                    </div>
+                    <h3 class="h5 text-muted mb-2">Stato KYC</h3>
+                    <p class="fw-bold mb-0">
+                        <span class="badge bg-{{ kyc_status.can_create_lottery|yesno:'success,warning' }}">
+                            {{ kyc_status.status_display }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lottery Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center">
+                        <h5 class="mb-0 me-4">
+                            <i class="fas fa-filter me-2"></i>Filtra Lotterie:
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <a href="?status=all" 
+                               class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
+                                <i class="fas fa-list me-2"></i>Tutte
+                            </a>
+                            <a href="?status=active" 
+                               class="btn btn-outline-primary {% if status_filter == 'active' %}active{% endif %}">
+                                <i class="fas fa-play me-2"></i>Attive
+                            </a>
+                            <a href="?status=archived" 
+                               class="btn btn-outline-primary {% if status_filter == 'archived' %}active{% endif %}">
+                                <i class="fas fa-archive me-2"></i>Archiviate
+                            </a>
+                            <a href="?status=won" 
+                               class="btn btn-outline-primary {% if status_filter == 'won' %}active{% endif %}">
+                                <i class="fas fa-trophy me-2"></i>Vinte
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lottery List -->
+    <div class="row">
+        <div class="col-12">
+            {% if seller_lotteries %}
+                <div class="row">
+                    {% for lottery in seller_lotteries %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card lottery-card h-100 shadow-sm border-0">
+                                <div class="card-header border-0 bg-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0 text-truncate">{{ lottery.title }}</h5>
+                                        <span class="badge bg-{{ lottery.status|yesno:'success,secondary,warning,info,primary' }}">
+                                            {{ lottery.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% if lottery.main_image_data_uri %}
+                                        <img src="{{ lottery.main_image_data_uri }}" 
+                                             alt="{{ lottery.title }}" 
+                                             class="lottery-image rounded mb-3">
+                                    {% else %}
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center mb-3" 
+                                             style="height: 150px;">
+                                            <i class="fas fa-image fa-3x text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <p class="text-muted mb-3">{{ lottery.description|truncatewords:20 }}</p>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small class="text-muted">Progresso</small>
+                                            <small class="text-muted">
+                                                {{ lottery.tickets_sold_count }}/{{ lottery.items_count }} biglietti
+                                            </small>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-gradient-primary" 
+                                                 style="width: {{ lottery.progress_percent }}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Stats -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Incasso</small>
+                                            <strong class="text-dark">
+                                                € {{ lottery.total_revenue|default:"0.00" }}
+                                            </strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Biglietti</small>
+                                            <strong class="text-{{ lottery.tickets_sold_count|yesno:'success,danger' }}">
+                                                {{ lottery.tickets_sold_count }}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if lottery.expiration_date %}
+                                        <div class="alert alert-{{ lottery.expiration_date|timesince|split:','|first|add:'0'|add:0|yesno:'danger,warning' }} 
+                                                   alert-sm py-2 mb-3" role="alert">
+                                            <small class="mb-0">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Scade il {{ lottery.expiration_date|date:"d/m/Y H:i" }}
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-white border-0">
+                                    <div class="d-grid">
+                                        <a href="{% url 'accounts:seller_lottery_detail' lottery.id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-chart-line me-2"></i>Dettagli
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="card text-center py-5">
+                    <div class="card-body">
+                        <i class="fas fa-ticket-alt fa-4x text-muted mb-4"></i>
+                        <h4 class="mb-3">Nessuna lotteria trovata</h4>
+                        <p class="text-muted mb-4">
+                            {% if status_filter != 'all' %}
+                                Non hai lotterie con lo status selezionato.
+                            {% else %}
+                                Non hai ancora creato nessuna lotteria. 
+                                Inizia creando la tua prima lotteria!
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'accounts:seller_create_lottery' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Crea Lotteria
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    {% if recent_sales %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Attività Recente
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Lotteria</th>
+                                    <th>Acquirente</th>
+                                    <th>Importo</th>
+                                    <th>Stato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in recent_sales %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ ticket.purchased_at|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ ticket.lottery.title|truncatechars:25 }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ ticket.buyer.username|truncatechars:15 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">
+                                            € {{ ticket.lottery.ticket_price }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>{{ ticket.get_payment_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-3 d-block"></i>
+                                        Nessuna vendita recente trovata
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-center bg-white">
+                    <a href="{% url 'accounts:seller_reports' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-download me-2"></i>Scarica Report Completo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.stat-card {
+    transition: transform 0.2s ease-in-out;
+    border-radius: 12px;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.lottery-card {
+    border-radius: 12px;
+    transition: transform 0.2s ease-in-out;
+}
+.lottery-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+.lottery-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.btn-group .btn.active {
+    background-color: #0d6efd;
+    color: white;
+}
+.alert-sm {
+    font-size: 0.875rem;
+}
+.progress-bar {
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

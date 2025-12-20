@@ -56,13 +56,15 @@
                 
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Buyer Dashboard -->
+                        {% if not user.lotteries_as_seller.exists %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle me-1"></i>{{ user.username }}
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{% url 'accounts:buyer_dashboard' %}">
-                                    <i class="fas fa-chart-line me-2"></i>Dashboard
+                                    <i class="fas fa-chart-line me-2"></i>Dashboard Acquirente
                                 </a></li>
                                 <li><a class="dropdown-item" href="{% url 'accounts:buyer_profile_edit' %}">
                                     <i class="fas fa-user-edit me-2"></i>Modifica Profilo
@@ -71,11 +73,48 @@
                                     <i class="fas fa-lock me-2"></i>Cambia Password
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:seller_dashboard' %}">
+                                    <i class="fas fa-store me-2"></i>Dashboard Venditore
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Esci
                                 </a></li>
                             </ul>
                         </li>
+                        {% else %}
+                        <!-- Seller Dashboard -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-store me-1"></i>{{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'accounts:seller_dashboard' %}">
+                                    <i class="fas fa-chart-line me-2"></i>Dashboard Venditore
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:seller_create_lottery' %}">
+                                    <i class="fas fa-plus me-2"></i>Nuova Lotteria
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:seller_reports' %}">
+                                    <i class="fas fa-chart-pie me-2"></i>Report Finanziari
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:seller_kyc_settings' %}">
+                                    <i class="fas fa-user-shield me-2"></i>Impostazioni KYC
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:buyer_dashboard' %}">
+                                    <i class="fas fa-shopping-cart me-2"></i>Dashboard Acquirente
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:buyer_profile_edit' %}">
+                                    <i class="fas fa-user-edit me-2"></i>Modifica Profilo
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Esci
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
                     {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'accounts:login' %}">
