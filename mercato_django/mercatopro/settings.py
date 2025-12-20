@@ -149,3 +149,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'mercato_accounts.CustomUser'
+
+# Site URL for email templates
+SITE_URL = 'http://localhost:8000'
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Configurabile
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = ''  # Da configurare in produzione
+EMAIL_HOST_PASSWORD = ''  # Da configurare in produzione
+DEFAULT_FROM_EMAIL = 'noreply@mercato.pro'
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Email retry configuration
+EMAIL_RETRY_ATTEMPTS = 3
+EMAIL_RETRY_DELAY = 60  # seconds

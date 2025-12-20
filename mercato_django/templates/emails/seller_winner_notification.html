@@ -1,0 +1,107 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Hai un Vincitore! - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>🎯 Hai un Vincitore per la tua Lotteria!</h2>
+
+<p>Ciao <strong>{{ seller.first_name|default:seller.username }}</strong>,</p>
+
+<p>Eccellente notizia! La tua lotteria "<strong>{{ lottery.title }}</strong>" ha un vincitore!</p>
+
+<div class="success-box">
+    <h3>🏆 Estrazione Completata</h3>
+    <p>Il sistema ha estratto il vincitore tra tutti i partecipanti.</p>
+</div>
+
+<div class="lottery-details">
+    <div class="lottery-title">📋 Dettagli Lotteria</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Lotteria:</div>
+            <div class="lottery-info-cell">{{ lottery.title }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Valore in Palio:</div>
+            <div class="lottery-info-cell">€{{ lottery.item_value }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Venduti:</div>
+            <div class="lottery-info-cell">{{ lottery.tickets_sold }}/{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Data Estrazione:</div>
+            <div class="lottery-info-cell">{{ drawing.drawn_at|date:"d/m/Y H:i" }}</div>
+        </div>
+    </div>
+</div>
+
+<h3>👤 Dettagli del Vincitore</h3>
+
+<div class="info-box">
+    <h4>🆔 Informazioni Vincitore</h4>
+    <p><strong>Nome:</strong> {{ winner.get_full_name|default:winner.username }}</p>
+    <p><strong>Username:</strong> {{ winner.username }}</p>
+    <p><strong>Email:</strong> <a href="mailto:{{ winner.email }}">{{ winner.email }}</a></p>
+    {% if winner.profile.phone_number %}
+    <p><strong>Telefono:</strong> {{ winner.profile.phone_number }}</p>
+    {% endif %}
+    <p><strong>Biglietto Vincente:</strong> {{ ticket.ticket_number }}</p>
+</div>
+
+<div class="warning-box">
+    <h4>⚠️ Azioni Richieste</h4>
+    <p>Come venditore, devi:</p>
+    <ul>
+        <li><strong>Contattare il vincitore entro 24 ore</strong> via email</li>
+        <li><strong>Organizzare la consegna del premio</strong> (ritiro o spedizione)</li>
+        <li><strong>Fornire i dettagli della consegna</strong> (costi, tempistiche, modalità)</li>
+        <li><strong>Completare la transazione</strong> entro 7 giorni</li>
+    </ul>
+</div>
+
+<h3>📞 Template per Contattare il Vincitore:</h3>
+
+<div class="info-box">
+    <p><em>Ecco un template che puoi usare per contattare il vincitore:</em></p>
+    
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+        <p><strong>Oggetto:</strong> Congratulazioni! Hai vinto "{{ lottery.title }}"</p>
+        <hr>
+        <p>Ciao {{ winner.first_name|default:winner.username }},</p>
+        <p>Complimenti! Il tuo biglietto {{ ticket.ticket_number }} è stato estratto come vincente per la lotteria "{{ lottery.title }}".</p>
+        <p>Per ritirare il premio, possiamo organizzare:</p>
+        <ul>
+            <li>Ritiro di persona (se possibile)</li>
+            <li>Spedizione con corriere</li>
+        </ul>
+        <p>Come preferisci procedere?</p>
+        <p>Saluti,<br>{{ seller.get_full_name|default:seller.username }}</p>
+    </div>
+</div>
+
+<div class="success-box">
+    <h4>✅ Suggerimenti per una Buona Transazione:</h4>
+    <ul>
+        <li><strong>Sii professionale:</strong> Rispondi rapidamente e sii chiaro nelle comunicazioni</li>
+        <li><strong>Documenta tutto:</strong> Tieni traccia delle comunicazioni e degli accordi</li>
+        <li><strong>Sii flessibile:</strong> Offri opzioni diverse per la consegna</li>
+        <li><strong>Gestisci le aspettative:</strong> Sii onesto su tempi e modalità di consegna</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:my_lotteries' %}" class="btn">Gestisci le Mie Lotterie</a>
+    <a href="{{ site_url }}{% url 'accounts:support' %}" class="btn" style="background-color: #ffc107; color: #000;">Richiedi Assistenza</a>
+</div>
+
+<div class="info-box">
+    <h4>📱 Hai bisogno di aiuto?</h4>
+    <p>Se hai problemi a contattare il vincitore o hai domande sulla procedura, contatta il nostro supporto a <a href="mailto:support@mercato.pro">support@mercato.pro</a> o telefonicamente.</p>
+</div>
+
+<p>Grazie per aver scelto MercatoPro come piattaforma per la tua lotteria!</p>
+
+<p>Il Team di MercatoPro</p>
+{% endblock %}

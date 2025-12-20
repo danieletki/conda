@@ -1,0 +1,103 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}🎉 HAI VINTO! - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>🎉 CONGRATULAZIONI! HAI VINTO!</h2>
+
+<p>Ciao <strong>{{ winner.first_name|default:winner.username }}</strong>,</p>
+
+<p>🎊 <strong>SEI IL VINCITORE!</strong> 🎊</p>
+
+<p>È con grande piacere che ti informiamo che il tuo biglietto <strong>{{ ticket.ticket_number }}</strong> è stato estratto come vincente per la lotteria "<strong>{{ lottery.title }}</strong>"!</p>
+
+<div class="success-box" style="font-size: 16px;">
+    <h3>🏆 PREMIO VINTO</h3>
+    <p><strong>Oggetto:</strong> {{ lottery.title }}</p>
+    <p><strong>Valore:</strong> €{{ lottery.item_value }}</p>
+    <p><strong>Il tuo Biglietto Vincente:</strong> {{ ticket.ticket_number }}</p>
+    <p><strong>Data Estrazione:</strong> {{ drawing.drawn_at|date:"d/m/Y H:i" }}</p>
+</div>
+
+<div class="lottery-details">
+    <div class="lottery-title">🎁 Dettagli del Premio</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Descrizione:</div>
+            <div class="lottery-info-cell">{{ lottery.description|linebreaks }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Venditore:</div>
+            <div class="lottery-info-cell">{{ lottery.seller.get_full_name|default:lottery.seller.username }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Totale Biglietti:</div>
+            <div class="lottery-info-cell">{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Venduti:</div>
+            <div class="lottery-info-cell">{{ lottery.tickets_sold }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Il Tuo Biglietto:</div>
+            <div class="lottery-info-cell"><strong style="color: #28a745;">{{ ticket.ticket_number }}</strong></div>
+        </div>
+    </div>
+</div>
+
+<h3>📋 Procedura per Ritirare il Premio:</h3>
+
+<div class="info-box">
+    <h4>1. 📞 Contatta il Venditore</h4>
+    <p><strong>Nome:</strong> {{ lottery.seller.get_full_name|default:lottery.seller.username }}</p>
+    <p><strong>Email:</strong> <a href="mailto:{{ lottery.seller.email }}">{{ lottery.seller.email }}</a></p>
+    <p>Il venditore è stato informato della tua vincita e ti contatterà entro 24 ore.</p>
+</div>
+
+<div class="info-box">
+    <h4>2. 🤝 Organizza l'Incontro/Spedizione</h4>
+    <p>Il venditore ti fornirà le istruzioni per:</p>
+    <ul>
+        <li>Ritiro di persona (se siete nella stessa zona)</li>
+        <li>Spedizione del premio</li>
+        <li>Eventuali costi di spedizione</li>
+        <li>Tempistiche di consegna</li>
+    </ul>
+</div>
+
+<div class="info-box">
+    <h4>3. ✅ Verifica e Conferma</h4>
+    <p>Una volta ricevuto il premio:</p>
+    <ul>
+        <li>Verifica che corrisponda alla descrizione</li>
+        <li>Conferma la ricezione nel tuo account MercatoPro</li>
+        <li>Lascia una recensione al venditore (opzionale)</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <h4>⚠️ Importante da Ricordare:</h4>
+    <ul>
+        <li><strong>Hai 7 giorni per contattare il venditore</strong> e organizzare il ritiro</li>
+        <li><strong>MercatoPro garantisce la transazione</strong> ma non gestisce direttamente la consegna</li>
+        <li><strong>Se ci sono problemi</strong>, contattaci immediatamente</li>
+        <li><strong>Conserva questa email</strong> come prova della tua vincita</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:my_winnings' %}" class="btn">Visualizza le Mie Vittorie</a>
+    <a href="{{ site_url }}{% url 'accounts:support' %}" class="btn" style="background-color: #dc3545;">Contatta il Supporto</a>
+</div>
+
+<div class="success-box">
+    <h4>🎊 Grazie per aver scelto MercatoPro!</h4>
+    <p>Speriamo che tu sia soddisfatto del tuo premio e che continuerai a utilizzare la nostra piattaforma per partecipare ad altre fantastiche lotterie!</p>
+</div>
+
+<p>Congratulazioni ancora per la tua vittoria! 🎉</p>
+
+<p>Il Team di MercatoPro<br>
+<em>"Dove le fortune si realizzano"</em></p>
+{% endblock %}

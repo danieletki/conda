@@ -1,0 +1,80 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Biglietto Acquistato - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>🎫 Biglietto Acquistato con Successo!</h2>
+
+<p>Ciao <strong>{{ buyer.first_name|default:buyer.username }}</strong>,</p>
+
+<p>Congratulazioni! Hai acquistato con successo un biglietto per la lotteria "<strong>{{ lottery.title }}</strong>".</p>
+
+<div class="success-box">
+    <h3>🎉 Biglietto Confermato</h3>
+    <p>Il tuo pagamento è stato processato correttamente e il biglietto è stato aggiunto al tuo account.</p>
+</div>
+
+<div class="lottery-details">
+    <div class="lottery-title">🎯 Dettagli Lotteria</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Titolo Lotteria:</div>
+            <div class="lottery-info-cell">{{ lottery.title }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Il Tuo Biglietto:</div>
+            <div class="lottery-info-cell"><strong>{{ ticket.ticket_number }}</strong></div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Valore in Palio:</div>
+            <div class="lottery-info-cell">€{{ lottery.item_value }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Prezzo Biglietto:</div>
+            <div class="lottery-info-cell">€{{ lottery.ticket_price }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Totali:</div>
+            <div class="lottery-info-cell">{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Venduti:</div>
+            <div class="lottery-info-cell">{{ lottery.tickets_sold }}/{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Venditore:</div>
+            <div class="lottery-info-cell">{{ lottery.seller.get_full_name|default:lottery.seller.username }}</div>
+        </div>
+        {% if lottery.expiration_date %}
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Scadenza:</div>
+            <div class="lottery-info-cell">{{ lottery.expiration_date|date:"d/m/Y H:i" }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<h3>📊 Come Funziona:</h3>
+<ul>
+    <li><strong>Quando tutti i biglietti sono venduti</strong>, la lotteria chiude automaticamente</li>
+    <li><strong>L'estrazione è completamente casuale</strong> e trasparente</li>
+    <li><strong>Riceverai una email con i risultati</strong> non appena l'estrazione viene completata</li>
+    <li><strong>Se vinci</strong>, riceverai tutte le istruzioni per ritirare il premio</li>
+</ul>
+
+<div class="info-box">
+    <h4>📱 Il Tuo Biglietto Digitale</h4>
+    <p><strong>Numero Biglietto:</strong> {{ ticket.ticket_number }}</p>
+    <p>Conserva questo numero: ti servirà per verificare la tua vincita e per qualsiasi comunicazione con il supporto.</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:detail' lottery.id %}" class="btn">Visualizza Lotteria</a>
+    <a href="{{ site_url }}{% url 'accounts:my_tickets' %}" class="btn" style="background-color: #28a745;">I Miei Biglietti</a>
+</div>
+
+<p>Buona fortuna! Speriamo che tu sia il fortunato vincitore 🎊</p>
+
+<p>Il Team di MercatoPro</p>
+{% endblock %}

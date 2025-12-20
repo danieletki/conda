@@ -1,0 +1,90 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Estrazione Completata - {{ lottery.title }}{% endblock %}
+
+{% block content %}
+<h2>🎲 Estrazione Completata</h2>
+
+<p>Ciao <strong>{{ participant.first_name|default:participant.username }}</strong>,</p>
+
+<p>Sfortunatamente, il tuo biglietto <strong>{{ ticket.ticket_number }}</strong> per la lotteria "<strong>{{ lottery.title }}</strong>" non è stato estratto come vincente.</p>
+
+<div class="lottery-details">
+    <div class="lottery-title">📋 Dettagli Lotteria</div>
+    
+    <div class="lottery-info">
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Lotteria:</div>
+            <div class="lottery-info-cell">{{ lottery.title }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Il Tuo Biglietto:</div>
+            <div class="lottery-info-cell">{{ ticket.ticket_number }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Valore in Palio:</div>
+            <div class="lottery-info-cell">€{{ lottery.item_value }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Biglietti Venduti:</div>
+            <div class="lottery-info-cell">{{ lottery.tickets_sold }}/{{ lottery.items_count }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Vincitore:</div>
+            <div class="lottery-info-cell">{{ winner.get_full_name|default:winner.username }}</div>
+        </div>
+        <div class="lottery-info-row">
+            <div class="lottery-info-cell">Data Estrazione:</div>
+            <div class="lottery-info-cell">{{ drawing.drawn_at|date:"d/m/Y H:i" }}</div>
+        </div>
+    </div>
+</div>
+
+<h3>🏆 Il Vincitore</h3>
+
+<div class="info-box">
+    <p>Congratulazioni al vincitore <strong>{{ winner.get_full_name|default:winner.username }}</strong> per il premio di €{{ lottery.item_value }}!</p>
+    <p>La vincita è stata comunicata sia al vincitore che al venditore della lotteria.</p>
+</div>
+
+<div class="success-box">
+    <h3>🔄 Non Demordere!</h3>
+    <p>La fortuna è cieca, ma la cieca è bella... e la tua chance potrebbe essere la prossima!</p>
+</div>
+
+<h3>🎯 Prossime Lotterie</h3>
+
+<div class="info-box">
+    <p>Non perdere le prossime fantastiche lotterie disponibili sulla piattaforma:</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:list' %}" class="btn">Partecipa ad Altre Lotterie</a>
+</div>
+
+<div class="warning-box">
+    <h4>💡 Suggerimenti per Aumentare le Tue Possibilità:</h4>
+    <ul>
+        <li><strong>Partecipa a più lotterie:</strong> Più biglietti acquisti, maggiori sono le possibilità</li>
+        <li><strong>Iscriviti alle notifiche:</strong> Ricevi un avviso quando ci sono nuove lotterie</li>
+        <li><strong>Controlla regolarmente:</strong> Ogni giorno ci sono nuove opportunità</li>
+        <li><strong>Seguici sui social:</strong> Pubblichiamo anteprime esclusive delle prossime lotterie</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'accounts:notifications' %}" class="btn" style="background-color: #17a2b8;">Gestisci Notifiche</a>
+    <a href="{{ site_url }}{% url 'accounts:my_tickets' %}" class="btn" style="background-color: #28a745;">I Miei Biglietti</a>
+</div>
+
+<div class="success-box">
+    <h4>🎊 La Vincita è Sempre Possibile!</h4>
+    <p>Ricorda: <em>"Il vincitore è colui che crede di poter vincere"</em></p>
+    <p>Continua a partecipare e prima o poi la fortuna busserà alla tua porta!</p>
+</div>
+
+<p>Ringraziamo la tua partecipazione e ti aspettiamo alle prossime lotterie!</p>
+
+<p>Il Team di MercatoPro<br>
+<em>"La tua prossima vittoria ti aspetta"</em></p>
+{% endblock %}

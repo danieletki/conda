@@ -1,0 +1,39 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}KYC Approvato - MercatoPro{% endblock %}
+
+{% block content %}
+<h2>🎉 Verifica KYC Approvata!</h2>
+
+<p>Ciao <strong>{{ user.first_name|default:user.username }}</strong>,</p>
+
+<p>Siamo felici di informarti che la tua verifica KYC è stata <strong>APPROVATA</strong> con successo!</p>
+
+<div class="success-box">
+    <h3>✅ Verifica Completata</h3>
+    <p>La tua identità è stata verificata e ora puoi:</p>
+    <ul>
+        <li>✅ Creare nuove lotterie</li>
+        <li>✅ Ricevere vincite direttamente sul tuo account</li>
+        <li>✅ Partecipare a tutte le lotterie senza limitazioni</li>
+        <li>✅ Accedere a tutte le funzionalità della piattaforma</li>
+    </ul>
+</div>
+
+<h3>🎯 Cosa puoi fare ora:</h3>
+<ul>
+    <li><strong>Crea la tua prima lotteria:</strong> Metti in palio un oggetto e lascia che altri partecipino</li>
+    <li><strong>Partecipa alle lotterie attive:</strong> Acquista biglietti per vincere fantastici premi</li>
+    <li><strong>Gestisci il tuo account:</strong> Monitora le tue lotterie e i tuoi biglietti</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}{% url 'lotteries:create' %}" class="btn">Crea una Lotteria</a>
+    <a href="{{ site_url }}{% url 'lotteries:list' %}" class="btn" style="background-color: #28a745;">Partecipa alle Lotterie</a>
+</div>
+
+<p>Il Team di MercatoPro ti ringrazia per aver completato il processo di verifica.</p>
+
+<p>Buona fortuna nelle tue future lotterie!<br>
+Il Team di MercatoPro</p>
+{% endblock %}
