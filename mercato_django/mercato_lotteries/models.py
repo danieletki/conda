@@ -4,7 +4,9 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import signals
+from django.urls import reverse
 from decimal import Decimal
+import base64
 import uuid
 from io import BytesIO
 from PIL import Image
@@ -96,11 +98,33 @@ class Lottery(models.Model):
     
     def __str__(self):
         return self.title
-    
+
+    def get_absolute_url(self):
+        return reverse('lotteries:detail', kwargs={'lottery_id': self.id})
+
     @property
     def tickets_sold(self):
+        if hasattr(self, 'tickets_sold_count'):
+            return self.tickets_sold_count
         return self.tickets.filter(payment_status='completed').count()
-    
+
+    @property
+    def tickets_remaining(self):
+        return max(self.items_count - self.tickets_sold, 0)
+
+    @property
+    def progress_percent(self):
+        if not self.items_count:
+            return 0
+        return min(int((self.tickets_sold / self.items_count) * 100), 100)
+
+    @property
+    def main_image_data_uri(self):
+        if not self.image_1:
+            return None
+        encoded = base64.b64encode(self.image_1).decode('ascii')
+        return f"data:image/jpeg;base64,{encoded}"
+
     @property
     def is_sold_out(self):
         return self.tickets_sold >= self.items_count

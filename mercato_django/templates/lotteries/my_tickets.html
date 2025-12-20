@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}I miei biglietti - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4"><i class="fas fa-ticket-alt me-2"></i>I miei biglietti</h1>
+
+    {% if tickets %}
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Lotteria</th>
+                            <th>Ticket</th>
+                            <th>Stato pagamento</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                            <tr>
+                                <td><a href="{{ ticket.lottery.get_absolute_url }}">{{ ticket.lottery.title }}</a></td>
+                                <td>{{ ticket.ticket_number }}</td>
+                                <td>{{ ticket.payment_status }}</td>
+                                <td>{{ ticket.purchased_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5 text-muted">Non hai ancora acquistato biglietti.</div>
+    {% endif %}
+</div>
+{% endblock %}

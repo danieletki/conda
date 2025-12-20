@@ -1,71 +1,86 @@
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404, render
+
 from .models import Lottery, LotteryTicket
 
 
 def lottery_list(request):
-    """
-    Display list of available lotteries
-    """
-    lotteries = Lottery.objects.filter(status='active').order_by('-created_at')
-    categories = Category.objects.filter(is_active=True)
-    
-    # Filter by category if specified
-    category = request.GET.get('category')
-    if category:
-        lotteries = lotteries.filter(category_id=category)
-    
-    return render(request, 'lotteries/list.html', {
-        'lotteries': lotteries,
-        'categories': categories,
-        'selected_category': category
-    })
+    lotteries_qs = (
+        Lottery.objects.filter(status='active')
+        .annotate(
+            tickets_sold_count=Count(
+                'tickets', filter=Q(tickets__payment_status='completed')
+            )
+        )
+        .order_by('-created_at')
+    )
+
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        lotteries_qs = lotteries_qs.filter(title__icontains=query)
+
+    paginator = Paginator(lotteries_qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(
+        request,
+        'lotteries/list.html',
+        {
+            'page_obj': page_obj,
+            'lotteries': page_obj.object_list,
+            'query': query,
+            'categories': [],
+            'selected_category': None,
+        },
+    )
 
 
 def lottery_detail(request, lottery_id):
-    """
-    Display lottery details
-    """
-    try:
-        lottery = Lottery.objects.get(id=lottery_id, status='active')
-        user_tickets = []
-        
-        if request.user.is_authenticated:
-            user_tickets = LotteryTicket.objects.filter(
-                lottery=lottery, 
-                user=request.user
+    lottery = get_object_or_404(
+        Lottery.objects.annotate(
+            tickets_sold_count=Count(
+                'tickets', filter=Q(tickets__payment_status='completed')
             )
-        
-        return render(request, 'lotteries/detail.html', {
+        ),
+        id=lottery_id,
+        status='active',
+    )
+
+    user_tickets = []
+    if request.user.is_authenticated:
+        user_tickets = (
+            LotteryTicket.objects.filter(lottery=lottery, buyer=request.user)
+            .order_by('-purchased_at')
+            .all()
+        )
+
+    return render(
+        request,
+        'lotteries/detail.html',
+        {
             'lottery': lottery,
-            'user_tickets': user_tickets
-        })
-    except Lottery.DoesNotExist:
-        from django.shortcuts import get_object_or_404
-        return get_object_or_404(Lottery, id=lottery_id)
+            'user_tickets': user_tickets,
+        },
+    )
 
 
 @login_required
 def buy_tickets(request, lottery_id):
-    """
-    Buy tickets for a lottery
-    """
-    # This will be implemented when payment integration is ready
-    return render(request, 'lotteries/buy_tickets.html')
+    lottery = get_object_or_404(Lottery, id=lottery_id, status='active')
+    return render(request, 'lotteries/buy_tickets.html', {'lottery': lottery})
 
 
 @login_required
 def my_tickets(request):
-    """
-    Display user's purchased tickets
-    """
-    tickets = LotteryTicket.objects.filter(user=request.user).order_by('-purchase_date')
+    tickets = (
+        LotteryTicket.objects.filter(buyer=request.user)
+        .select_related('lottery')
+        .order_by('-purchased_at')
+    )
     return render(request, 'lotteries/my_tickets.html', {'tickets': tickets})
 
 
 def lottery_results(request):
-    """
-    Display lottery results
-    """
-    # This will be implemented when lottery results are generated
     return render(request, 'lotteries/results.html')

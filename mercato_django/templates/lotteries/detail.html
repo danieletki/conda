@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ lottery.title }} - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                {% if lottery.main_image_data_uri %}
+                    <img src="{{ lottery.main_image_data_uri }}" class="card-img-top" alt="{{ lottery.title }}">
+                {% else %}
+                    <img src="{% static 'img/lottery-placeholder.svg' %}" class="card-img-top" alt="{{ lottery.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h1 class="h3 fw-bold mb-2">{{ lottery.title }}</h1>
+                    <p class="text-muted mb-0">{{ lottery.description }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold mb-3">Dettagli</h2>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="small text-muted">Prezzo biglietto</div>
+                            <div class="fs-4 fw-bold">€{{ lottery.ticket_price }}</div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <div class="small text-muted">Biglietti rimanenti</div>
+                            <div class="fs-4 fw-bold">{{ lottery.tickets_remaining }}</div>
+                        </div>
+                    </div>
+
+                    <div class="progress mt-4" style="height: 10px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ lottery.progress_percent }}%" aria-valuenow="{{ lottery.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small text-muted">
+                        <span>{{ lottery.tickets_sold }}/{{ lottery.items_count }} venduti</span>
+                        <span>
+                            {% if lottery.expiration_date %}
+                                Scade {{ lottery.expiration_date|date:"d/m/Y" }}
+                            {% else %}
+                                Nessuna scadenza
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'lotteries:buy_tickets' lottery.id %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-ticket-alt me-2"></i>Acquista Biglietto
+                        </a>
+                        <a href="{% url 'lotteries:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Torna al listing
+                        </a>
+                    </div>
+
+                    {% if user.is_authenticated and user_tickets %}
+                        <hr class="my-4">
+                        <h3 class="h6 fw-bold mb-2">I tuoi biglietti</h3>
+                        <ul class="list-group list-group-flush">
+                            {% for ticket in user_tickets %}
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span>{{ ticket.ticket_number }}</span>
+                                    <span class="text-muted small">{{ ticket.payment_status }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
