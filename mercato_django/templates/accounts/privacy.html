@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Privacy Policy - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </h3>
+                    <p class="text-light mb-0">La tua privacy è importante per noi</p>
+                </div>
+                <div class="card-body">
+                    <h5>1. Informazioni che raccogliamo</h5>
+                    <p>Raccogliamo informazioni fornite volontariamente quando ti registri sul nostro sito, ti abboni alla nostra newsletter o compili moduli.</p>
+                    
+                    <h5>2. Come utilizziamo le tue informazioni</h5>
+                    <p>Le informazioni raccolte possono essere utilizzate per:</p>
+                    <ul>
+                        <li>Personalizzare la tua esperienza</li>
+                        <li>Elaborare le transazioni</li>
+                        <li>Inviarti email periodiche</li>
+                        <li>Migliorare il nostro servizio</li>
+                    </ul>
+                    
+                    <h5>3. Protezione delle informazioni</h5>
+                    <p>Implementiamo misure di sicurezza appropriate per proteggere le tue informazioni personali.</p>
+                    
+                    <h5>4. Condivisione di informazioni</h5>
+                    <p>Non vendiamo, scambiamo o trasferiamo le tue informazioni personali a terzi senza il tuo consenso.</p>
+                    
+                    <h5>5. Cookies</h5>
+                    <p>Il nostro sito utilizza cookies per migliorare l'esperienza dell'utente.</p>
+                    
+                    <p><small>Ultimo aggiornamento: {% now "d/m/Y" %}</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

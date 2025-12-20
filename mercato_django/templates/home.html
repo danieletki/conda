@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - MercatoPro{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 fw-bold mb-4">Benvenuto su MercatoPro</h1>
+                <p class="lead mb-4">Il tuo mercato online dove puoi partecipare a lotterie, gestire pagamenti e ricevere notifiche in tempo reale.</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{% url 'lotteries:list' %}" class="btn btn-light btn-lg">
+                        <i class="fas fa-ticket-alt me-2"></i>Vedi Lotterie
+                    </a>
+                    {% if not user.is_authenticated %}
+                    <a href="{% url 'accounts:register' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Registrati Ora
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold">Come Funziona</h2>
+                <p class="lead text-muted">Scopri tutte le funzionalità di MercatoPro</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-ticket-alt fa-2x"></i>
+                    </div>
+                    <h4>Partecipa alle Lotterie</h4>
+                    <p class="text-muted">Acquista biglietti per lotterie esclusive con premi incredibili. Ogni biglietto ti avvicina al premio dei tuoi sogni.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-credit-card fa-2x"></i>
+                    </div>
+                    <h4>Pagamenti Sicuri</h4>
+                    <p class="text-muted">Effettua pagamenti in totale sicurezza con PayPal e altri metodi di pagamento affidabili.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-bell fa-2x"></i>
+                    </div>
+                    <h4>Notifiche in Tempo Reale</h4>
+                    <p class="text-muted">Ricevi notifiche immediate sui risultati delle lotterie e sulle tue attività.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Lotteries Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold">Lotterie in Corso</h2>
+                <p class="lead text-muted">Non perdere l'opportunità di vincere!</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="lottery-card">
+                    <img src="https://via.placeholder.com/400x200/007bff/ffffff?text=Lotteria+1" alt="Lotteria 1">
+                    <div class="card-body">
+                        <h5 class="lottery-title">SuperCar Ferrari</h5>
+                        <p class="lottery-description">Vinci una Ferrari F8 Tributo completa di ogni optional. Un sogno che diventa realtà!</p>
+                        <div class="lottery-price">€25.00</div>
+                        <a href="#" class="btn btn-primary w-100">
+                            <i class="fas fa-ticket-alt me-2"></i>Acquista Biglietto
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="lottery-card">
+                    <img src="https://via.placeholder.com/400x200/28a745/ffffff?text=Lotteria+2" alt="Lotteria 2">
+                    <div class="card-body">
+                        <h5 class="lottery-title">Casa al Mare</h5>
+                        <p class="lottery-description">Vinci una magnifica villa vista mare con piscina e giardino. La casa dei tuoi sogni ti aspetta!</p>
+                        <div class="lottery-price">€50.00</div>
+                        <a href="#" class="btn btn-primary w-100">
+                            <i class="fas fa-ticket-alt me-2"></i>Acquista Biglietto
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="lottery-card">
+                    <img src="https://via.placeholder.com/400x200/dc3545/ffffff?text=Lotteria+3" alt="Lotteria 3">
+                    <div class="card-body">
+                        <h5 class="lottery-title">Viaggio Mondo</h5>
+                        <p class="lottery-description">Vinci un viaggio per due persone intorno al mondo. Scopri le meraviglie del pianeta!</p>
+                        <div class="lottery-price">€15.00</div>
+                        <a href="#" class="btn btn-primary w-100">
+                            <i class="fas fa-ticket-alt me-2"></i>Acquista Biglietto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5">
+            <a href="{% url 'lotteries:list' %}" class="btn btn-outline-primary btn-lg">
+                Vedi Tutte le Lotterie <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="mb-4">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h3 class="fw-bold">10,000+</h3>
+                    <p class="text-muted">Utenti Registrati</p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="mb-4">
+                    <i class="fas fa-ticket-alt fa-3x text-success mb-3"></i>
+                    <h3 class="fw-bold">500+</h3>
+                    <p class="text-muted">Lotterie Attive</p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="mb-4">
+                    <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                    <h3 class="fw-bold">€2M+</h3>
+                    <p class="text-muted">Premi Distribuiti</p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="mb-4">
+                    <i class="fas fa-star fa-3x text-info mb-3"></i>
+                    <h3 class="fw-bold">4.9/5</h3>
+                    <p class="text-muted">Rating Medio</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
