@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Profilo - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="profile-card">
+                <div class="profile-header">
+                    {% if user.profile.profile_image %}
+                    <img src="{{ user.profile.profile_image.url }}" alt="Profile Image">
+                    {% else %}
+                    <img src="https://via.placeholder.com/120x120/007bff/ffffff?text=Profile" alt="Default Profile">
+                    {% endif %}
+                    <h3>{{ user.get_full_name|default:user.username }}</h3>
+                    <p class="text-light">{{ user.email }}</p>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <a href="{% url 'accounts:settings' %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i>Modifica Profilo
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-primary">15</h5>
+                            <small class="text-muted">Biglietti</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-success">3</h5>
+                            <small class="text-muted">Vinte</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-info">€450</h5>
+                            <small class="text-muted">Speso</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informazioni Personali</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nome:</strong> {{ user.first_name|default:"Non specificato" }}</p>
+                            <p><strong>Cognome:</strong> {{ user.last_name|default:"Non specificato" }}</p>
+                            <p><strong>Email:</strong> {{ user.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Telefono:</strong> {{ user.phone_number|default:"Non specificato" }}</p>
+                            <p><strong>Data di nascita:</strong> {{ user.date_of_birth|default:"Non specificato" }}</p>
+                            <p><strong>Iscritto dal:</strong> {{ user.date_joined|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if user.profile.bio %}
+                    <hr>
+                    <h6>Biografia</h6>
+                    <p>{{ user.profile.bio }}</p>
+                    {% endif %}
+                    
+                    {% if user.profile.full_address %}
+                    <hr>
+                    <h6>Indirizzo</h6>
+                    <p>{{ user.profile.full_address }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
