@@ -1,0 +1,239 @@
+version: '3.8'
+
+services:
+  # Database PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: mercatopro_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mercato_db}
+      POSTGRES_USER: ${DB_USER:-mercato_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mercato_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - mercato_network
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mercato_user} -d ${DB_NAME:-mercato_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis per Celery
+  redis:
+    image: redis:7-alpine
+    container_name: mercatopro_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    networks:
+      - mercato_network
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Django Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mercatopro_web
+    restart: unless-stopped
+    environment:
+      - DEBUG=${DEBUG:-1}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-f-4t%hlkqc71z+fgq=x3e6(dxvv5r^3wz)cc9x*sffx62fk)^t}
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-mercato_db}
+      - DB_USER=${DB_USER:-mercato_user}
+      - DB_PASSWORD=${DB_PASSWORD:-mercato_password}
+      - DB_PORT=${DB_PORT:-5432}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - SITE_URL=${SITE_URL:-http://localhost}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+    volumes:
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    networks:
+      - mercato_network
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mercatopro_celery_worker
+    restart: unless-stopped
+    command: celery
+    environment:
+      - DEBUG=${DEBUG:-1}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-f-4t%hlkqc71z+fgq=x3e6(dxvv5r^3wz)cc9x*sffx62fk)^t}
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-mercato_db}
+      - DB_USER=${DB_USER:-mercato_user}
+      - DB_PASSWORD=${DB_PASSWORD:-mercato_password}
+      - DB_PORT=${DB_PORT:-5432}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - SITE_URL=${SITE_URL:-http://localhost}
+    volumes:
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    networks:
+      - mercato_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A mercatopro inspect ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Celery Beat Scheduler
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mercatopro_celery_beat
+    restart: unless-stopped
+    command: beat
+    environment:
+      - DEBUG=${DEBUG:-1}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-f-4t%hlkqc71z+fgq=x3e6(dxvv5r^3wz)cc9x*sffx62fk)^t}
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-mercato_db}
+      - DB_USER=${DB_USER:-mercato_user}
+      - DB_PASSWORD=${DB_PASSWORD:-mercato_password}
+      - DB_PORT=${DB_PORT:-5432}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - SITE_URL=${SITE_URL:-http://localhost}
+    volumes:
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    networks:
+      - mercato_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A mercatopro inspect active"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: mercatopro_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./staticfiles:/var/www/static:ro
+      - ./media:/var/www/media:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - mercato_network
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Network per la comunicazione tra container
+networks:
+  mercato_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes per persistenza dati
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
