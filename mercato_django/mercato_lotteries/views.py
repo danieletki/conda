@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .models import Lottery, Category, LotteryTicket
+from .models import Lottery, LotteryTicket
 
 
 def lottery_list(request):

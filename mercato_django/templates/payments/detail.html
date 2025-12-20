@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Transaction Details - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-receipt me-2"></i>Transaction Details
+                </h1>
+                <div>
+                    <a href="{% url 'payments:history' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-history me-2"></i>Payment History
+                    </a>
+                    <a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Transaction Status Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Transaction #{{ transaction.id|slice:":8" }}
+                    </h6>
+                    <span class="badge bg-{% if transaction.status == 'completed' %}success{% elif transaction.status == 'pending' %}warning{% elif transaction.status == 'refunded' %}info{% elif transaction.status == 'failed' %}danger{% else %}secondary{% endif %} fs-6">
+                        {{ transaction.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Transaction Details -->
+                        <div class="col-md-6">
+                            <h6 class="card-title text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Transaction Details
+                            </h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Transaction ID:</strong></td>
+                                        <td>{{ transaction.id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>PayPal Order ID:</strong></td>
+                                        <td>{{ transaction.paypal_order_id|default:"N/A" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>PayPal Transaction ID:</strong></td>
+                                        <td>{{ transaction.paypal_tx_id|default:"N/A" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Created:</strong></td>
+                                        <td>{{ transaction.created_at|date:"F d, Y H:i:s" }}</td>
+                                    </tr>
+                                    {% if transaction.payment_completed_at %}
+                                    <tr>
+                                        <td><strong>Paid:</strong></td>
+                                        <td>{{ transaction.payment_completed_at|date:"F d, Y H:i:s" }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if transaction.refunded_at %}
+                                    <tr>
+                                        <td><strong>Refunded:</strong></td>
+                                        <td>{{ transaction.refunded_at|date:"F d, Y H:i:s" }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    <tr>
+                                        <td><strong>Currency:</strong></td>
+                                        <td>{{ transaction.currency }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Financial Details -->
+                        <div class="col-md-6">
+                            <h6 class="card-title text-success">
+                                <i class="fas fa-euro-sign me-2"></i>Financial Details
+                            </h6>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Total Amount:</strong></td>
+                                        <td class="text-end">€{{ transaction.amount|floatformat:2 }}</td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td><strong>Commission (10%):</strong></td>
+                                        <td class="text-end">-€{{ transaction.commission|floatformat:2 }}</td>
+                                    </tr>
+                                    <tr class="table-info">
+                                        <td><strong>PayPal Fee:</strong></td>
+                                        <td class="text-end">-€{{ transaction.paypal_fee_amount|floatformat:2 }}</td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>Net Amount:</strong></td>
+                                        <td class="text-end">
+                                            <strong>€{{ transaction.net_amount|floatformat:2 }}
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Details -->
+                    <hr>
+                    <h6 class="card-title text-info">
+                        <i class="fas fa-ticket-alt me-2"></i>Ticket Details
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Ticket Number:</strong><br>
+                            <code class="text-primary fs-5">{{ transaction.ticket.ticket_number }}</code>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Lottery:</strong><br>
+                            {{ transaction.ticket.lottery.title }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Buyer:</strong><br>
+                            {{ transaction.ticket.buyer.username }}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <strong>Payer Email:</strong><br>
+                            {{ transaction.payer_email|default:"N/A" }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Ticket Status:</strong><br>
+                            <span class="badge bg-{% if transaction.ticket.payment_status == 'completed' %}success{% elif transaction.ticket.payment_status == 'pending' %}warning{% elif transaction.ticket.payment_status == 'refunded' %}info{% elif transaction.ticket.payment_status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                {{ transaction.ticket.get_payment_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Lottery Status:</strong><br>
+                            <span class="badge bg-{% if transaction.ticket.lottery.status == 'active' %}success{% elif transaction.ticket.lottery.status == 'completed' %}primary{% elif transaction.ticket.lottery.status == 'closed' %}warning{% else %}secondary{% endif %}">
+                                {{ transaction.ticket.lottery.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if transaction.status == 'completed' and transaction.ticket.lottery.status != 'completed' %}
+                                {% if request.user.is_staff %}
+                                    <a href="{% url 'payments:refund_ticket' transaction.ticket.id %}" 
+                                       class="btn btn-warning me-2" 
+                                       onclick="return confirm('Are you sure you want to refund this ticket? This action cannot be undone.')">
+                                        <i class="fas fa-undo me-2"></i>Process Refund
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if transaction.paypal_order_id and transaction.status == 'pending' %}
+                                <a href="{% url 'payments:process_payment' transaction.ticket.id %}" 
+                                   class="btn btn-success me-2">
+                                    <i class="fas fa-check-circle me-2"></i>Complete Payment
+                                </a>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <a href="{% url 'mercato_lotteries:detail' transaction.ticket.lottery.id %}" 
+                               class="btn btn-outline-primary me-2">
+                                <i class="fas fa-ticket-alt me-2"></i>View Lottery
+                            </a>
+                            <a href="{% url 'payments:dashboard' %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Metadata -->
+            {% if transaction.metadata %}
+            <div class="card shadow mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-code me-2"></i>Additional Metadata
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>{{ transaction.metadata|default:"{}"|pprint }}</code></pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Help Information -->
+            <div class="alert alert-info">
+                <h5 class="alert-heading">
+                    <i class="fas fa-question-circle me-2"></i>Need Help?
+                </h5>
+                <p class="mb-0">
+                    If you have questions about this transaction, please contact support with the transaction ID: 
+                    <strong>{{ transaction.id }}</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Print functionality for receipts
+document.addEventListener('DOMContentLoaded', function() {
+    // Add print button functionality
+    const printBtn = document.createElement('button');
+    printBtn.className = 'btn btn-outline-secondary me-2';
+    printBtn.innerHTML = '<i class="fas fa-print me-2"></i>Print Receipt';
+    printBtn.onclick = function() {
+        window.print();
+    };
+    
+    // Add to action buttons if exists
+    const actionButtons = document.querySelector('.card-body .d-flex');
+    if (actionButtons) {
+        actionButtons.prepend(printBtn);
+    }
+});
+</script>
+{% endblock %}

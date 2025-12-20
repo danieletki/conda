@@ -1,11 +1,185 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Page{% endblock %}</title>
-</head>
-<body>
-    <h1>{% block content %}Content{% endblock %}</h1>
-</body>
-</html>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Dashboard - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-credit-card me-2"></i>Payment Dashboard
+        </h1>
+        <a href="{% url 'payments:history' %}" class="btn btn-primary">
+            <i class="fas fa-history me-2"></i>Payment History
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% if is_admin_view %}Total Revenue{% else %}Total Paid{% endif %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                €{{ total_revenue|default:total_paid|default:"0.00" }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-euro-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Platform Commission
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                €{{ total_platform_commission|default:total_commission|default:"0.00" }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Transactions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ transaction_count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Commission Rate
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                10%
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
+            {% if is_admin_view %}
+                <span class="badge bg-info">Admin View</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Ticket Number</th>
+                            <th>Lottery</th>
+                            <th>Amount</th>
+                            <th>Commission</th>
+                            <th>Net Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            {% if is_admin_view %}<th>Buyer</th>{% endif %}
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>{{ transaction.id|slice:":8" }}</td>
+                            <td>{{ transaction.ticket.ticket_number }}</td>
+                            <td>{{ transaction.ticket.lottery.title|truncatechars:20 }}</td>
+                            <td>€{{ transaction.amount }}</td>
+                            <td>€{{ transaction.commission }}</td>
+                            <td>€{{ transaction.net_amount }}</td>
+                            <td>
+                                <span class="badge bg-{% if transaction.status == 'completed' %}success{% elif transaction.status == 'pending' %}warning{% elif transaction.status == 'refunded' %}info{% elif transaction.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.created_at|date:"Y-m-d H:i" }}</td>
+                            {% if is_admin_view %}<td>{{ transaction.ticket.buyer.username }}</td>{% endif %}
+                            <td>
+                                <a href="{% url 'payments:payment_detail' transaction.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if is_admin_view and transaction.status == 'completed' and transaction.ticket.payment_status == 'completed' %}
+                                    <a href="{% url 'payments:refund_ticket' transaction.ticket.id %}" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to refund this ticket?')">
+                                        <i class="fas fa-undo"></i> Refund
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if is_admin_view %}10{% else %}9{% endif %}" class="text-center">No transactions found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('.table').DataTable({
+        "pageLength": 10,
+        "language": {
+            "search": "Search:",
+            "lengthMenu": "Show _MENU_ entries",
+            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+            "paginate": {
+                "first": "First",
+                "last": "Last",
+                "next": "Next",
+                "previous": "Previous"
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
