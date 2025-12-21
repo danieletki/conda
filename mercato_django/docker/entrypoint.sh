@@ -116,5 +116,11 @@ elif [ "$1" = "beat" ]; then
     exec celery -A mercatopro beat --loglevel=info
 else
     echo "🚀 Avvio server Django..."
-    exec python manage.py runserver 0.0.0.0:8000
+    if [ "$DEBUG" = "1" ] || [ "$DEBUG" = "true" ]; then
+        echo "🔧 Modalità DEBUG: Avvio runserver..."
+        exec python manage.py runserver 0.0.0.0:8000
+    else
+        echo "🏭 Modalità PROD: Avvio Gunicorn..."
+        exec gunicorn mercatopro.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    fi
 fi

@@ -30,7 +30,9 @@ cp .env.example .env
 docker-compose up -d
 
 # O con il Makefile (se disponibile)
+make build # Per costruire le immagini
 make up
+make seed  # Per popolare il database con dati di test
 ```
 
 ### 3. Verifica dello Stato
@@ -158,6 +160,9 @@ docker-compose exec -T db psql -U mercato_user mercato_db < backup.sql
 ```bash
 # Esegui migrazioni
 docker-compose exec web python manage.py migrate
+
+# Popola dati di test
+make seed
 
 # Crea superuser
 docker-compose exec web python manage.py createsuperuser
