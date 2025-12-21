@@ -1,0 +1,205 @@
+# =============================================================================
+# Docker Compose Override for Development
+# =============================================================================
+# This file is automatically loaded by docker-compose and overrides values
+# from docker-compose.yml for local development.
+#
+# Features:
+# - Debug mode enabled
+# - Hot reload for code changes
+# - Console email backend (no SMTP needed)
+# - Verbose logging
+# - Development-friendly settings
+#
+# To disable this file temporarily:
+#   docker-compose -f docker-compose.yml up -d
+#
+# To use this file explicitly:
+#   docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # Django Web Application - Development Overrides
+  web:
+    environment:
+      # Enable debug mode
+      - DEBUG=True
+      
+      # Console email backend (emails printed to console instead of sent)
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      
+      # Verbose logging
+      - DJANGO_LOG_LEVEL=DEBUG
+      
+      # Development-friendly security settings
+      - SESSION_COOKIE_SECURE=False
+      - CSRF_COOKIE_SECURE=False
+      - SECURE_SSL_REDIRECT=False
+      
+      # Allow all CORS for development
+      - CORS_ALLOW_ALL_ORIGINS=True
+    
+    # Hot reload: mount source code for live updates
+    volumes:
+      - ./:/app
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    
+    # Override command to use runserver instead of gunicorn
+    command: >
+      sh -c "
+        echo '🔧 Development mode: Hot reload enabled';
+        python manage.py runserver 0.0.0.0:8000
+      "
+    
+    # Reduce health check frequency for faster development
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  
+  # Celery Worker - Development Overrides
+  celery-worker:
+    environment:
+      - DEBUG=True
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      - DJANGO_LOG_LEVEL=DEBUG
+    
+    # Hot reload for Celery code
+    volumes:
+      - ./:/app
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    
+    # More verbose Celery logging
+    command: >
+      sh -c "
+        echo '🐝 Celery worker: Development mode';
+        celery -A mercatopro worker --loglevel=debug --concurrency=2
+      "
+    
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+  
+  # Celery Beat - Development Overrides
+  celery-beat:
+    environment:
+      - DEBUG=True
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      - DJANGO_LOG_LEVEL=DEBUG
+    
+    # Hot reload for Celery Beat
+    volumes:
+      - ./:/app
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    
+    # More verbose beat logging
+    command: >
+      sh -c "
+        echo '🕐 Celery beat: Development mode';
+        celery -A mercatopro beat --loglevel=debug
+      "
+    
+    healthcheck:
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+  
+  # Database - Development Overrides
+  db:
+    # Expose database port for GUI tools
+    ports:
+      - "5432:5432"
+    
+    # Reduce health check frequency
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    
+    # Simplified logging for development
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+  
+  # Redis - Development Overrides
+  redis:
+    # Expose Redis port for GUI tools (RedisInsight, etc.)
+    ports:
+      - "6379:6379"
+    
+    # Reduce health check frequency
+    healthcheck:
+      interval: 60s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    
+    # Simplified logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+  
+  # Nginx - Development Overrides
+  nginx:
+    # Expose ports
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    # Development nginx config could be loaded here if needed
+    # volumes:
+    #   - ./docker/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    
+    # Reduce health check frequency
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    # Simplified logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# Development notes:
+# 
+# Hot Reload:
+#   Code changes in ./mercato_* directories are automatically picked up
+#   No need to rebuild containers for Python code changes
+#
+# Email Testing:
+#   All emails are printed to console (docker-compose logs -f web)
+#   No SMTP configuration needed for development
+#
+# Database Access:
+#   Connect with GUI tools to localhost:5432
+#   Credentials: mercato_user / mercato_password / mercato_db
+#
+# Redis Access:
+#   Connect with RedisInsight or redis-cli to localhost:6379
+#   Password: redis_password
+#
+# Debug Logging:
+#   All containers log verbosely for easier debugging
+#   View with: docker-compose logs -f [service]
+#
+# Disable Override:
+#   Rename to .docker-compose.override.yml to temporarily disable
+#   Or use: docker-compose -f docker-compose.yml up -d

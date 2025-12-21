@@ -118,6 +118,11 @@ test: ## Esegue i test Django
     @echo "$(YELLOW)🧪 Esecuzione test...$(NC)"
     $(DOCKER_COMPOSE) exec web python manage.py test
 
+.PHONY: test-docker
+test-docker: ## Esegue test completi del deployment Docker
+    @echo "$(YELLOW)🧪 Esecuzione test Docker deployment...$(NC)"
+    ./test_docker.sh
+
 .PHONY: clean
 clean: ## Rimuove container e volumi (CANCELLA TUTTI I DATI)
     @echo "$(RED)⚠️  ATTENZIONE: Rimozione completa di tutti i dati!$(NC)"
