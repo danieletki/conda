@@ -244,7 +244,69 @@ coverage run --source='.' manage.py test
 coverage report
 ```
 
-## 🚀 Deployment
+## 🐳 Docker Deployment
+
+### Quick Start with Docker (Raccomandato)
+
+**3 comandi per lanciare tutto:**
+
+```bash
+cd mercato_django
+docker-compose up -d
+docker-compose ps  # Attendi fino a "healthy"
+```
+
+**Accesso:**
+- **Applicazione**: http://localhost
+- **Admin Panel**: http://localhost/admin
+- **Credenziali**: admin / admin123
+
+### Testing Docker Deployment
+
+```bash
+# Test automatici completi
+./test_docker.sh
+
+# Or usando Makefile
+make test-docker
+
+# Quick health check
+make health
+```
+
+### Documentazione Docker Completa
+
+- **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Guida completa setup e deployment
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Guida testing comprensiva
+- **[DOCKER_TESTING_SUMMARY.md](DOCKER_TESTING_SUMMARY.md)** - Riepilogo implementazione
+
+### Servizi Docker Inclusi
+
+- ✅ **PostgreSQL 15** - Database
+- ✅ **Redis 7** - Cache & Celery broker
+- ✅ **Django/Gunicorn** - Applicazione web
+- ✅ **Celery Worker** - Background tasks
+- ✅ **Celery Beat** - Scheduled tasks
+- ✅ **Nginx** - Reverse proxy & static files
+
+### Comandi Docker Utili
+
+```bash
+make up                    # Avvia servizi
+make down                  # Ferma servizi
+make logs                  # Visualizza logs
+make shell                 # Shell nel container web
+make migrate               # Esegui migrations
+make seed                  # Popola dati di test
+make backup-db             # Backup database
+make test-docker           # Test completi
+```
+
+Vedi **[DOCKER_SETUP.md](DOCKER_SETUP.md)** per dettagli completi.
+
+---
+
+## 🚀 Manual Deployment (Alternative)
 
 ### Production Settings
 Aggiorna `settings.py` per produzione:

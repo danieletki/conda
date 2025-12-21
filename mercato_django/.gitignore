@@ -60,10 +60,16 @@ django.log
 .env
 .env.local
 .env.production
-.env.docker
+!.env.docker
 .env.*.local
 .env.*.production
 local_settings.py
+
+# Docker - Backup files
+*.sql
+backup_*.sql
+postgres_backup.tar.gz
+media_backup*.tar.gz
 
 # PyCharm
 .idea/
