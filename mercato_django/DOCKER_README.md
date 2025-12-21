@@ -177,6 +177,25 @@ docker-compose exec web python manage.py collectstatic
 docker-compose exec web python manage.py test
 ```
 
+### Nginx (Reverse Proxy)
+
+```bash
+# Verifica sintassi configurazione Nginx
+docker-compose exec nginx nginx -t
+
+# Reload configurazione Nginx (zero downtime)
+docker-compose exec nginx nginx -s reload
+
+# View Nginx logs
+docker-compose logs -f nginx
+
+# Access log real-time
+docker-compose exec nginx tail -f /var/log/nginx/access.log
+
+# Test health endpoint
+curl http://localhost/health
+```
+
 ### Logs e Debug
 
 ```bash
@@ -306,12 +325,36 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
+## 🌐 Nginx Reverse Proxy
+
+Per documentazione dettagliata della configurazione Nginx, inclusa sicurezza, rate limiting, caching, e performance tuning, vedi [NGINX_README.md](./NGINX_README.md).
+
+### Verifica Reverse Proxy
+
+```bash
+# Verifica che Nginx passeggi correttamente le richieste a Django
+curl -v http://localhost/admin/
+
+# Verifica static files serviti da Nginx
+curl -I http://localhost/static/admin/css/base.css
+
+# Verifica media files
+curl -I http://localhost/media/
+
+# Verifica security headers
+curl -I http://localhost/ | grep -E "X-Frame|X-Content-Type|CSP"
+
+# Verifica gzip compression
+curl -H "Accept-Encoding: gzip" -I http://localhost/static/admin/css/base.css | grep Content-Encoding
+```
+
 ## 📚 Risorse Aggiuntive
 
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Django Deployment Guide](https://docs.djangoproject.com/en/4.2/howto/deployment/)
 - [Celery Documentation](https://celery.readthedocs.io/)
 - [Nginx Configuration](https://nginx.org/en/docs/)
+- [Nginx Reverse Proxy README](./NGINX_README.md) - Configurazione dettagliata
 
 ## 🆘 Supporto
 

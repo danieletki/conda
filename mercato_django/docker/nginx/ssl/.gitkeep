@@ -1,0 +1,16 @@
+# SSL Certificates Directory
+
+Place your SSL certificates in this directory for HTTPS support.
+
+## Required files for production:
+- `cert.pem` - SSL certificate chain
+- `key.pem` - Private key
+
+## Generate self-signed certificate for testing:
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
+  -subj "/C=IT/ST=State/L=City/O=Org/CN=localhost"
+```
+
+## To enable HTTPS, uncomment the SSL section in docker/nginx/conf.d/default.conf
