@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  <rect x="100" y="100" width="600" height="400" rx="20" fill="#e9ecef"/>
+  <rect x="150" y="150" width="500" height="300" rx="15" fill="#dee2e6"/>
+  <circle cx="400" cy="300" r="80" fill="#ced4da"/>
+  <text x="400" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#6c757d" font-weight="bold">?</text>
+  <text x="400" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#6c757d">Immagine lotteria</text>
+  <rect x="300" y="500" width="200" height="40" rx="10" fill="#0d6efd"/>
+  <text x="400" y="527" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" font-weight="bold">Vinci ora!</text>
+</svg>
