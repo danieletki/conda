@@ -3,16 +3,17 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
-from django.db.models import Count, Q, Sum, DecimalField, Avg, Min, Max
+from django.db.models import Avg, Count, DecimalField, ExpressionWrapper, F, Max, Min, Q, Sum
 from django.db.models.functions import Coalesce, TruncDate, TruncDay
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.http import Http404
 import csv
 from datetime import datetime
+from decimal import Decimal
 
 from mercato_lotteries.models import Lottery, LotteryTicket, WinnerDrawing
-from mercato_payments.models import Payment, LotteryPayment
+from mercato_payments.models import Payment, PaymentTransaction
 from mercato_lotteries.forms import LotteryCreationForm
 
 from .forms import CustomUserCreationForm, CustomUserLoginForm, ProfileForm, UserSettingsForm, CustomPasswordChangeForm
@@ -263,12 +264,22 @@ def seller_dashboard(request):
     seller_lotteries = (
         Lottery.objects.filter(seller=request.user)
         .annotate(
-            tickets_sold_count=Count('tickets', filter=Q(tickets__payment_status='completed')),
-            total_revenue=Sum(
-                'tickets__lottery__ticket_price',
-                filter=Q(tickets__payment_status='completed')
+            tickets_sold_count=Count(
+                'tickets',
+                filter=Q(tickets__payment_status='completed'),
+                distinct=True,
             ),
-            winning_drawings=Count('drawings', filter=Q(drawings__status='completed'))
+            winning_drawings=Count(
+                'drawings',
+                filter=Q(drawings__status='completed'),
+                distinct=True,
+            ),
+        )
+        .annotate(
+            total_revenue=ExpressionWrapper(
+                Coalesce(F('ticket_price'), Decimal('0.00')) * F('tickets_sold_count'),
+                output_field=DecimalField(max_digits=15, decimal_places=2),
+            )
         )
         .order_by('-created_at')
     )
@@ -295,11 +306,11 @@ def seller_dashboard(request):
     total_tickets_sold = completed_tickets.count()
     
     # Calculate total earnings (net revenue after commission)
-    total_earnings = Payment.objects.filter(
-        payment_transactions__ticket__in=completed_tickets,
+    total_earnings = PaymentTransaction.objects.filter(
+        ticket__lottery__seller=request.user,
         status='completed'
     ).aggregate(
-        total_net=Coalesce(Sum('payment_transactions__net_amount'), 0, output_field=DecimalField())
+        total_net=Coalesce(Sum('net_amount'), 0, output_field=DecimalField())
     )['total_net']
     
     # Count total lotteries created
@@ -459,41 +470,61 @@ def seller_reports(request):
         payment_status='completed'
     ).select_related('lottery', 'buyer')
     
-    # Calculate totals
-    total_payments = Payment.objects.filter(
-        payment_transactions__ticket__in=completed_tickets,
+    # Calculate totals from payment transactions
+    payment_transactions = PaymentTransaction.objects.filter(
+        ticket__lottery__seller=request.user,
         status='completed'
     )
     
-    total_gross = total_payments.aggregate(
-        total=Coalesce(Sum('payment_transactions__amount'), 0, output_field=DecimalField())
+    total_gross = payment_transactions.aggregate(
+        total=Coalesce(Sum('amount'), 0, output_field=DecimalField())
     )['total']
     
-    total_commissions = total_payments.aggregate(
-        total=Coalesce(Sum('payment_transactions__commission'), 0, output_field=DecimalField())
+    total_commissions = payment_transactions.aggregate(
+        total=Coalesce(Sum('commission'), 0, output_field=DecimalField())
     )['total']
     
-    total_earnings = total_gross - total_commissions if total_gross else 0
+    total_earnings = payment_transactions.aggregate(
+        total=Coalesce(Sum('net_amount'), 0, output_field=DecimalField())
+    )['total']
     
     # Reports by lottery
     lottery_reports = (
-        Lottery.objects.filter(
-            seller=request.user,
-            tickets__payment_status='completed'
-        )
+        Lottery.objects.filter(seller=request.user)
         .annotate(
-            tickets_sold=Count('tickets', filter=Q(tickets__payment_status='completed')),
-            gross_revenue=Sum('tickets__lottery__ticket_price', filter=Q(tickets__payment_status='completed')),
+            tickets_sold=Count(
+                'tickets',
+                filter=Q(tickets__payment_status='completed'),
+                distinct=True,
+            ),
+            gross_revenue=Coalesce(
+                Sum(
+                    'tickets__payment_transactions__amount',
+                    filter=Q(tickets__payment_transactions__status='completed'),
+                ),
+                Decimal('0.00'),
+                output_field=DecimalField(max_digits=15, decimal_places=2),
+            ),
+            commission_amount=Coalesce(
+                Sum(
+                    'tickets__payment_transactions__commission',
+                    filter=Q(tickets__payment_transactions__status='completed'),
+                ),
+                Decimal('0.00'),
+                output_field=DecimalField(max_digits=15, decimal_places=2),
+            ),
+            net_revenue=Coalesce(
+                Sum(
+                    'tickets__payment_transactions__net_amount',
+                    filter=Q(tickets__payment_transactions__status='completed'),
+                ),
+                Decimal('0.00'),
+                output_field=DecimalField(max_digits=15, decimal_places=2),
+            ),
         )
         .filter(tickets_sold__gt=0)
         .order_by('-created_at')
     )
-    
-    # Calculate net revenue for each lottery
-    for lottery in lottery_reports:
-        commission_rate = Decimal('0.10')
-        lottery.net_revenue = (lottery.gross_revenue or 0) * (1 - commission_rate)
-        lottery.commission_amount = (lottery.gross_revenue or 0) * commission_rate
     
     # CSV Download
     if request.GET.get('download') == 'csv':
