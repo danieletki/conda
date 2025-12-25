@@ -42,9 +42,9 @@ db.sqlite3
 db.sqlite3-journal
 
 # Django Static and Media
-/static/
-/media/
-/staticfiles/
+# /static/          # Source static files - should be tracked
+# /media/           # Source media files - should be tracked
+/staticfiles/       # Collected static files - generated at build time
 
 # Django Logs
 *.log
@@ -153,7 +153,7 @@ Thumbs.db
 
 # Django Project specific
 *.sqlite3
-/media/
+# /media/           # Source media files - should be tracked
 /staticfiles/
 
 # Payment and sensitive data
@@ -173,8 +173,8 @@ mercatopro/.env
 *.sqlite3
 
 # Uploaded files
-media/
-static/
+# media/           # Source media files - should be tracked
+# static/          # Source static files - should be tracked
 
 # Log files
 *.log
