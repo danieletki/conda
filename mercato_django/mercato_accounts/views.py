@@ -471,20 +471,20 @@ def seller_reports(request):
     ).select_related('lottery', 'buyer')
     
     # Calculate totals from payment transactions
-    payment_transactions = PaymentTransaction.objects.filter(
+    completed_transactions = PaymentTransaction.objects.filter(
         ticket__lottery__seller=request.user,
         status='completed'
     )
     
-    total_gross = payment_transactions.aggregate(
+    total_gross = completed_transactions.aggregate(
         total=Coalesce(Sum('amount'), 0, output_field=DecimalField())
     )['total']
     
-    total_commissions = payment_transactions.aggregate(
+    total_commissions = completed_transactions.aggregate(
         total=Coalesce(Sum('commission'), 0, output_field=DecimalField())
     )['total']
     
-    total_earnings = payment_transactions.aggregate(
+    total_earnings = completed_transactions.aggregate(
         total=Coalesce(Sum('net_amount'), 0, output_field=DecimalField())
     )['total']
     
