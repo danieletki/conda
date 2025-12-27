@@ -51,6 +51,7 @@ def dashboard(request):
             'total_revenue': total_revenue,
             'total_paid': total_revenue,  # total_paid = total_revenue (importo lordo pagato dai buyer)
             'total_platform_commission': total_platform_commission,
+            'total_commission': total_platform_commission,  # Same as total_platform_commission for admin view
             'transaction_count': all_transactions.count(),
             'recent_transactions': all_transactions.select_related(
                 'ticket', 'ticket__lottery', 'ticket__buyer'
@@ -60,7 +61,9 @@ def dashboard(request):
     else:
         context = {
             'total_paid': total_paid,
+            'total_revenue': total_paid,  # Same as total_paid for non-admin view
             'total_platform_commission': total_commission,
+            'total_commission': total_commission,  # Commission paid by this user
             'transaction_count': user_transactions.count(),
             'recent_transactions': recent_transactions,
             'is_admin_view': False
