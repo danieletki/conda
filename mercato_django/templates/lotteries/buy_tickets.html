@@ -81,13 +81,17 @@
                                 </button>
                                 <input type="number" class="form-control text-center" 
                                        id="ticketCount" name="ticket_count" 
-                                       value="1" min="1" max="{{ lottery.tickets_remaining }}" readonly>
+                                       value="1" min="1" {% if not lottery.can_manually_draw %}max="{{ lottery.tickets_remaining }}"{% endif %} readonly>
                                 <button class="btn btn-outline-secondary" type="button" id="increaseBtn">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                             <small class="text-muted">
-                                Disponibili: <span id="availableTickets">{{ lottery.tickets_remaining }}</span> biglietti
+                                {% if lottery.can_manually_draw %}
+                                    Disponibili: <i class="fas fa-infinity me-1"></i>illimitati
+                                {% else %}
+                                    Disponibili: <span id="availableTickets">{{ lottery.tickets_remaining }}</span> biglietti
+                                {% endif %}
                             </small>
                         </div>
 
@@ -108,7 +112,7 @@
                             </div>
                             
                             <!-- Low stock warning -->
-                            {% if lottery.tickets_remaining <= 10 %}
+                            {% if not lottery.can_manually_draw and lottery.tickets_remaining <= 10 %}
                                 <div class="alert alert-warning alert-sm py-2 mb-3">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <small>Solo {{ lottery.tickets_remaining }} biglietti rimasti!</small>
@@ -267,6 +271,7 @@
         const ticketForm = document.getElementById('ticketForm');
         
         const unitPrice = parseFloat('{{ lottery.ticket_price }}');
+        const isUnlimited = {{ lottery.can_manually_draw|yesno:"true,false" }};
         const maxTickets = parseInt('{{ lottery.tickets_remaining }}');
         let currentCount = 1;
 
@@ -274,20 +279,19 @@
             const total = (unitPrice * currentCount).toFixed(2);
             totalPriceSpan.textContent = `€${total}`;
             ticketQuantitySpan.textContent = currentCount;
-            
-            // Update button text with total
+
             buttonText.textContent = `Paga €${total} con PayPal`;
         }
 
         function updateButtonState() {
-            if (currentCount >= maxTickets) {
+            if (!isUnlimited && currentCount >= maxTickets) {
                 increaseBtn.disabled = true;
                 increaseBtn.classList.add('disabled');
             } else {
                 increaseBtn.disabled = false;
                 increaseBtn.classList.remove('disabled');
             }
-            
+
             if (currentCount <= 1) {
                 decreaseBtn.disabled = true;
                 decreaseBtn.classList.add('disabled');
@@ -307,7 +311,7 @@
         });
 
         increaseBtn.addEventListener('click', function() {
-            if (currentCount < maxTickets) {
+            if (isUnlimited || currentCount < maxTickets) {
                 currentCount++;
                 ticketCountInput.value = currentCount;
                 updatePrice();

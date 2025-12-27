@@ -53,8 +53,6 @@ django.log
 
 # Django Migrations
 **/migrations/__pycache__/
-**/migrations/*.py
-!**/migrations/__init__.py
 
 # Django Settings
 .env

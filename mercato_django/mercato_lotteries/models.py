@@ -82,6 +82,10 @@ class Lottery(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     kyc_completed = models.BooleanField(default=False)
     expiration_date = models.DateTimeField(null=True, blank=True)
+
+    # Manual drawing configuration
+    can_manually_draw = models.BooleanField(default=True)
+    min_draw_delay_hours = models.PositiveIntegerField(default=24)
     
     # Compressed images stored as BLOB
     image_1 = CompressedImageField()
@@ -304,11 +308,8 @@ def lottery_pre_save(sender, instance, **kwargs):
 
 
 def handle_lottery_fulfillment(sender, instance, created, **kwargs):
-    """Set expiration date when lottery is fulfilled"""
-    if instance.is_sold_out and not instance.expiration_date:
-        instance.expiration_date = timezone.now() + timezone.timedelta(days=15)
-        instance.status = 'closed'
-        instance.save()
+    """No-op: lotteries are closed/drawn manually."""
+    return
 
 
 # Connect signals
