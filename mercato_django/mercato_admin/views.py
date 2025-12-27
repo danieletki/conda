@@ -64,6 +64,10 @@ def admin_dashboard(request):
     # Commission statistics
     total_commissions = PaymentTransaction.objects.filter(status='completed').aggregate(Sum('commission'))['commission__sum'] or 0
     
+    # Calculate commission rate percentage (moved from template)
+    commission_rate = (total_commissions / total_revenue * 100) if total_revenue > 0 else 0
+    commission_rate_int = int(commission_rate)  # For progress bar width
+    
     # Recent activities
     recent_users = CustomUser.objects.order_by('-created_at')[:5]
     recent_lotteries = Lottery.objects.order_by('-created_at')[:5]
@@ -87,6 +91,8 @@ def admin_dashboard(request):
         'completed_payments': completed_payments,
         'total_revenue': total_revenue,
         'total_commissions': total_commissions,
+        'commission_rate': commission_rate,
+        'commission_rate_int': commission_rate_int,
         'recent_users': recent_users,
         'recent_lotteries': recent_lotteries,
         'recent_payments': recent_payments,
