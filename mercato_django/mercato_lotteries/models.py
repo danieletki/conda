@@ -122,7 +122,7 @@ class Lottery(models.Model):
         return status_display.get(self.status, self.status)
 
     def get_absolute_url(self):
-        return reverse('mercato_lotteries:detail', kwargs={'lottery_id': self.id})
+        return reverse('lotteries:detail', kwargs={'lottery_id': self.id})
 
     @property
     def tickets_sold(self):

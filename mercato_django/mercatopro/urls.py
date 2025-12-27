@@ -9,7 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home_view, name='home'),
     path('accounts/', include(('mercato_accounts.urls', 'accounts'), namespace='accounts')),
-    path('lotteries/', include(('mercato_lotteries.urls', 'mercato_lotteries'), namespace='mercato_lotteries')),
+    path('lotteries/', include(('mercato_lotteries.urls', 'lotteries'), namespace='lotteries')),
     path('payments/', include(('mercato_payments.urls', 'payments'), namespace='payments')),
     path('notifications/', include(('mercato_notifications.urls', 'notifications'), namespace='notifications')),
     path('admin-panel/', include(('mercato_admin.urls', 'admin_panel'), namespace='admin_panel')),

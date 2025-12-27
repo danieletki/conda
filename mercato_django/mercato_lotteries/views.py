@@ -117,12 +117,12 @@ def buy_tickets(request, lottery_id):
     # Check if lottery is still available for purchase
     if lottery.tickets_remaining <= 0:
         messages.error(request, "Spiacente, questa lotteria è esaurita.")
-        return redirect('mercato_lotteries:detail', lottery_id=lottery_id)
+        return redirect('lotteries:detail', lottery_id=lottery_id)
 
     # Check expiration date
     if lottery.expiration_date and lottery.expiration_date <= timezone.now():
         messages.error(request, "Spiacente, questa lotteria è scaduta.")
-        return redirect('mercato_lotteries:detail', lottery_id=lottery_id)
+        return redirect('lotteries:detail', lottery_id=lottery_id)
     
     if request.method == 'POST':
         try:
