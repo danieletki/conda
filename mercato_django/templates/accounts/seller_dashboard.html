@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load account_filters %}
 
 {% block title %}Dashboard Venditore - MercatoPro{% endblock %}
 
@@ -150,7 +151,7 @@
                                 <div class="card-header border-0 bg-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0 text-truncate">{{ lottery.title }}</h5>
-                                        <span class="badge bg-{{ lottery.status|yesno:'success,secondary,warning,info,primary' }}">
+                                        <span class="badge bg-{{ lottery.get_status_color }}">
                                             {{ lottery.get_status_display }}
                                         </span>
                                     </div>
@@ -200,7 +201,7 @@
                                     </div>
                                     
                                     {% if lottery.expiration_date %}
-                                        <div class="alert alert-{{ lottery.expiration_date|timesince|split:','|first|add:'0'|add:0|yesno:'danger,warning' }} 
+                                        <div class="alert alert-{{ lottery.is_expired|yesno:'danger,warning' }} 
                                                    alert-sm py-2 mb-3" role="alert">
                                             <small class="mb-0">
                                                 <i class="fas fa-clock me-1"></i>
