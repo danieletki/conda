@@ -13,7 +13,7 @@
                 </p>
 
                 <div class="d-flex gap-3 flex-wrap">
-                    <a href="{% url 'mercato_lotteries:list' %}" class="btn btn-light btn-lg">
+                    <a href="{% url 'lotteries:list' %}" class="btn btn-light btn-lg">
                         <i class="fas fa-ticket-alt me-2"></i>Esplora Lotterie
                     </a>
                     {% if not user.is_authenticated %}
@@ -23,7 +23,7 @@
                     {% endif %}
                 </div>
 
-                <form method="get" action="{% url 'mercato_lotteries:list' %}" class="mt-4">
+                <form method="get" action="{% url 'lotteries:list' %}" class="mt-4">
                     <div class="input-group input-group-lg hero-search">
                         <span class="input-group-text bg-white border-0">
                             <i class="fas fa-search text-muted"></i>

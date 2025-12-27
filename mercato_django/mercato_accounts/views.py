@@ -43,7 +43,7 @@ def login_view(request):
     User login view
     """
     if request.user.is_authenticated:
-        return redirect('mercato_lotteries:list')
+        return redirect('lotteries:list')
 
     if request.method == 'POST':
         form = CustomUserLoginForm(request, data=request.POST)
@@ -51,7 +51,7 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, f'Benvenuto {user.username}!')
-            return redirect('mercato_lotteries:list')
+            return redirect('lotteries:list')
         else:
             messages.error(request, 'Credenziali non valide.')
     else:
@@ -75,7 +75,7 @@ def register(request):
     User registration view
     """
     if request.user.is_authenticated:
-        return redirect('mercato_lotteries:list')
+        return redirect('lotteries:list')
 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
