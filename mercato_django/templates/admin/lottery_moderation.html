@@ -92,16 +92,16 @@
                                                             {% if not lottery.seller.is_verified %}disabled{% endif %}>
                                                         <i class="fas fa-check"></i>
                                                     </button>
-                                                    <button class="btn btn-sm btn-danger reject-btn" 
-                                                            data-lottery-id="{{ lottery.id }}" 
-                                                            data-bs-toggle="modal" 
-                                                            data-bs-target="#rejectModal" 
+                                                    <button class="btn btn-sm btn-danger reject-btn"
+                                                            data-lottery-id="{{ lottery.id }}"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#rejectModal"
                                                             title="Reject">
                                                         <i class="fas fa-times"></i>
                                                     </button>
-                                                    <a href="{% url 'lotteries:detail' lottery_id=lottery.id %}" 
-                                                       class="btn btn-sm btn-info" 
-                                                       target="_blank" 
+                                                    <a href="{% url 'mercato_lotteries:detail' lottery.id %}"
+                                                       class="btn btn-sm btn-info"
+                                                       target="_blank"
                                                        title="View Lottery">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
