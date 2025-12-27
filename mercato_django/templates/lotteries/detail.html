@@ -11,7 +11,7 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'mercato_lotteries:list' %}">Lotterie</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'lotteries:list' %}">Lotterie</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ lottery.title|truncatechars:50 }}</li>
         </ol>
     </nav>

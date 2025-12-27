@@ -118,7 +118,7 @@ def process_payment(request, ticket_id):
     # Ensure user owns the ticket
     if ticket.buyer != request.user:
         messages.error(request, "Access denied.")
-        return redirect('mercato_lotteries:list')
+        return redirect('lotteries:list')
     
     # Check if ticket is already paid
     if ticket.payment_status == 'completed':
