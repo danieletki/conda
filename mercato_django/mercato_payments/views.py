@@ -49,6 +49,7 @@ def dashboard(request):
         
         context = {
             'total_revenue': total_revenue,
+            'total_paid': total_revenue,  # total_paid = total_revenue (importo lordo pagato dai buyer)
             'total_platform_commission': total_platform_commission,
             'transaction_count': all_transactions.count(),
             'recent_transactions': all_transactions.select_related(
@@ -59,7 +60,7 @@ def dashboard(request):
     else:
         context = {
             'total_paid': total_paid,
-            'total_commission': total_commission,
+            'total_platform_commission': total_commission,
             'transaction_count': user_transactions.count(),
             'recent_transactions': recent_transactions,
             'is_admin_view': False
