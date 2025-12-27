@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load account_filters %}
 
 {% block title %}Dettagli Lotteria - {{ lottery.title }} - MercatoPro{% endblock %}
 
@@ -15,7 +16,7 @@
                     </h1>
                     <p class="text-muted mt-2">
                         <strong>{{ lottery.title }}</strong> - 
-                        <span class="badge bg-{{ lottery.status|yesno:'success,warning,warning,info,primary' }}">
+                        <span class="badge bg-{{ lottery.get_status_color }}">
                             {{ lottery.get_status_display }}
                         </span>
                     </p>
@@ -83,7 +84,7 @@
                                 </small>
                             </div>
                             {% if lottery.expiration_date %}
-                                <div class="alert alert-{{ lottery.expiration_date|timesince|split:','|first|add:'0'|add:0|yesno:'danger,warning' }} 
+                                <div class="alert alert-{{ lottery.is_expired|yesno:'danger,warning' }} 
                                            alert-sm py-2" role="alert">
                                     <small class="mb-0">
                                         <i class="fas fa-clock me-1"></i>
@@ -150,7 +151,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <small class="text-muted d-block">Status Attuale</small>
-                        <span class="badge bg-{{ lottery.status|yesno:'success,warning,warning,info,primary' }} fs-6">
+                        <span class="badge bg-{{ lottery.get_status_color }} fs-6">
                             {{ lottery.get_status_display }}
                         </span>
                     </div>

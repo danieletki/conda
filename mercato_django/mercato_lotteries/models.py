@@ -165,6 +165,12 @@ class Lottery(models.Model):
     def is_sold_out(self):
         return self.tickets_sold >= self.items_count
     
+    @property
+    def is_expired(self):
+        if not self.expiration_date:
+            return False
+        return timezone.now() > self.expiration_date
+
     def calculate_ticket_price(self):
         """Calculate ticket price as item_value / items_count"""
         if self.item_value and self.items_count:
