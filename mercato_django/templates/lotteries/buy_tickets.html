@@ -11,8 +11,8 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'lotteries:list' %}">Lotterie</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'lotteries:detail' lottery.id %}">{{ lottery.title|truncatechars:30 }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'mercato_lotteries:list' %}">Lotterie</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'mercato_lotteries:detail' lottery.id %}">{{ lottery.title|truncatechars:30 }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Acquisto</li>
         </ol>
     </nav>
