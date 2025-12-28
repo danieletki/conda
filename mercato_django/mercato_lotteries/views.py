@@ -6,8 +6,10 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import timedelta
 
-from .models import Lottery, LotteryTicket
+from .models import Lottery, LotteryTicket, WinnerDrawing
+from .tasks import perform_manual_draw
 from mercato_payments.models import PaymentTransaction, PaymentSettings
 from mercato_accounts.models import Profile
 
@@ -175,3 +177,46 @@ def my_tickets(request):
 
 def lottery_results(request):
     return render(request, 'lotteries/results.html')
+
+
+@login_required
+def initiate_draw(request, lottery_id):
+    """
+    Inizia il processo di estrazione manuale del vincitore.
+    Disponibile solo per il venditore della lotteria.
+    """
+    lottery = get_object_or_404(Lottery, id=lottery_id)
+
+    # 1. Lotteria esiste e status='active'
+    if lottery.status != 'active':
+        messages.error(request, "Questa lotteria non è attiva")
+        return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
+
+    # 2. L'utente è il venditore (request.user == lottery.seller)
+    if request.user != lottery.seller:
+        messages.error(request, "Non hai accesso a questa lotteria")
+        # If it's not the seller, maybe they shouldn't even know this exists or be redirected to buyer detail
+        return redirect('lotteries:detail', lottery_id=lottery_id)
+
+    # 3. Sono passate almeno min_draw_delay_hours ore dalla creazione
+    time_elapsed = timezone.now() - lottery.created_at
+    if time_elapsed < timedelta(hours=lottery.min_draw_delay_hours):
+        remaining = timedelta(hours=lottery.min_draw_delay_hours) - time_elapsed
+        hours = int(remaining.total_seconds() // 3600)
+        messages.error(request, f"Devi attendere {hours} ore prima di poter estrarre")
+        return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
+
+    # 4. Esiste almeno 1 biglietto con payment_status='completed'
+    if not lottery.tickets.filter(payment_status='completed').exists():
+        messages.error(request, "Nessun biglietto pagato disponibile")
+        return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
+
+    # 5. Non esiste già un WinnerDrawing per questa lotteria
+    if WinnerDrawing.objects.filter(lottery=lottery).exists():
+        messages.error(request, "L'estrazione è già stata effettuata")
+        return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
+
+    # Se tutte validazioni passano:
+    perform_manual_draw.delay(lottery_id, request.user.id)
+    messages.success(request, "Estrazione avviata! Il vincitore verrà estratto a breve.")
+    return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
