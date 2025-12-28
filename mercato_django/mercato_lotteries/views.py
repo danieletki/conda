@@ -152,12 +152,12 @@ def buy_tickets(request, lottery_id):
                 status='pending'
             )
             
-            # Store ticket IDs in the transaction for reference
-            payment_transaction.ticket_ids = [ticket.id for ticket in created_tickets]
+            # Store ticket IDs in the transaction for reference (converted to strings for JSON serialization)
+            payment_transaction.ticket_ids = [str(ticket.id) for ticket in created_tickets]
             payment_transaction.save()
             
             # Redirect to PayPal payment processing with ticket count
-            return redirect('payments:process_payment', ticket_id=created_tickets[0].id)
+            return redirect('payments:process_payment', ticket_id=str(created_tickets[0].id))
             
         except (ValueError, ValidationError) as e:
             messages.error(request, f"Errore durante l'elaborazione dell'acquisto: {str(e)}")
