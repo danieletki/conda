@@ -9,7 +9,7 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.http import Http404
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from mercato_lotteries.models import Lottery, LotteryTicket, WinnerDrawing
@@ -444,6 +444,21 @@ def seller_lottery_detail(request, lottery_id):
                 'drawn_at': winner_drawing.drawn_at,
             }
     
+    # Check if manual draw is available
+    can_draw = False
+    hours_remaining = 0
+    minutes_remaining = 0
+    draw_available_at = lottery.created_at + timedelta(hours=lottery.min_draw_delay_hours)
+
+    if lottery.status == 'active' and lottery.tickets_sold_count > 0:
+        if timezone.now() >= draw_available_at:
+            can_draw = True
+        else:
+            remaining_td = draw_available_at - timezone.now()
+            total_seconds = int(remaining_td.total_seconds())
+            hours_remaining = total_seconds // 3600
+            minutes_remaining = (total_seconds % 3600) // 60
+
     context = {
         'lottery': lottery,
         'completed_tickets': completed_tickets,
@@ -454,6 +469,10 @@ def seller_lottery_detail(request, lottery_id):
         'sales_counts': sales_counts,
         'daily_revenues': daily_revenues,
         'winner': winner,
+        'can_draw': can_draw,
+        'hours_remaining': hours_remaining,
+        'minutes_remaining': minutes_remaining,
+        'draw_available_at': draw_available_at,
     }
     
     return render(request, 'accounts/seller_lottery_detail.html', context)
