@@ -15,12 +15,12 @@
         </a>
     </div>
 
-    <div class="card-body d-flex flex-column p-2">
+    <div class="card-body d-flex flex-column">
         <h6 class="card-title mb-1">
             <a href="{{ lottery.get_absolute_url }}" class="text-decoration-none text-dark">{{ lottery.title|truncatechars:50 }}</a>
         </h6>
 
-        <p class="card-text text-muted mb-2 small">{{ lottery.description|truncatechars:80 }}</p>
+        <p class="card-text text-muted mb-1 small">{{ lottery.description|truncatewords:8 }}</p>
 
         <div class="d-flex justify-content-between align-items-end gap-2 mt-auto">
             <div>
@@ -33,11 +33,11 @@
             </div>
         </div>
 
-        <div class="progress mt-2" style="height: 6px;">
+        <div class="progress mt-1" style="height: 4px;">
             <div class="progress-bar" role="progressbar" style="width: {{ lottery.progress_percent }}%" aria-valuenow="{{ lottery.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
 
-        <div class="d-flex justify-content-between mt-1 small text-muted" style="font-size: 0.7rem;">
+        <div class="d-flex justify-content-between mt-1 small text-muted">
             <span>{{ lottery.tickets_sold }}/{{ lottery.items_count }}</span>
             <span>
                 {% if lottery.expiration_date %}
@@ -48,7 +48,7 @@
             </span>
         </div>
 
-        <div class="d-grid mt-2">
+        <div class="d-grid mt-1">
             <a href="{{ lottery.get_absolute_url }}" class="btn btn-primary btn-sm">
                 Vedi
             </a>
