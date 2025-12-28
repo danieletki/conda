@@ -307,7 +307,7 @@
     </div>
 
     <!-- Winner Info (if exists) -->
-    {% if winner %}
+    {% if winner and winner_drawing %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-{% if winner_drawing.is_shipped %}success{% else %}warning{% endif %}">
