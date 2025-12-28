@@ -91,7 +91,11 @@ def lottery_detail(request, lottery_id):
     seller_total_sales = Lottery.objects.filter(seller=lottery.seller, status='completed').count()
 
     # Check for low ticket notifications (last 5 tickets)
-    low_ticket_warning = lottery.tickets_remaining <= 5 and lottery.tickets_remaining > 0
+    low_ticket_warning = (
+        not lottery.can_manually_draw
+        and lottery.tickets_remaining <= 5
+        and lottery.tickets_remaining > 0
+    )
     current_time = timezone.now()
 
     return render(
@@ -114,11 +118,6 @@ def lottery_detail(request, lottery_id):
 def buy_tickets(request, lottery_id):
     lottery = get_object_or_404(Lottery, id=lottery_id, status='active')
 
-    # Check if lottery is still available for purchase
-    if lottery.tickets_remaining <= 0:
-        messages.error(request, "Spiacente, questa lotteria è esaurita.")
-        return redirect('lotteries:detail', lottery_id=lottery_id)
-
     # Check expiration date
     if lottery.expiration_date and lottery.expiration_date <= timezone.now():
         messages.error(request, "Spiacente, questa lotteria è scaduta.")
@@ -127,8 +126,8 @@ def buy_tickets(request, lottery_id):
     if request.method == 'POST':
         try:
             ticket_count = int(request.POST.get('ticket_count', 1))
-            if ticket_count < 1 or ticket_count > lottery.tickets_remaining:
-                messages.error(request, f"Numero di biglietti non valido. Massimo disponibile: {lottery.tickets_remaining}")
+            if ticket_count < 1:
+                messages.error(request, "Numero di biglietti non valido. Minimo: 1")
                 return render(request, 'lotteries/buy_tickets.html', {'lottery': lottery})
             
             # Calculate total amount
