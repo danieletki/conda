@@ -90,12 +90,14 @@ def send_lottery_results_to_participants(lottery, drawing):
     """
     Send lottery results to all participants (non-winners)
     """
-    participants = lottery.tickets.filter(
-        payment_status='completed'
-    ).exclude(
-        buyer=drawing.winner
-    ).select_related('buyer').distinct('buyer')
-    
+    participants = (
+        lottery.tickets.filter(payment_status='completed')
+        .exclude(buyer=drawing.winner)
+        .select_related('buyer')
+        .order_by('buyer_id', '-purchased_at')
+        .distinct('buyer')
+    )
+
     for ticket in participants:
         # Check if user wants lottery result emails
         try:
