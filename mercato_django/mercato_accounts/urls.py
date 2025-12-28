@@ -21,4 +21,5 @@ urlpatterns = [
     path('seller/lottery/<int:lottery_id>/', views.seller_lottery_detail, name='seller_lottery_detail'),
     path('seller/reports/', views.seller_reports, name='seller_reports'),
     path('seller/kyc/settings/', views.seller_kyc_settings, name='seller_kyc_settings'),
+    path('winners/<int:drawing_id>/mark-shipped/', views.mark_winner_as_shipped, name='mark_winner_shipped'),
 ]

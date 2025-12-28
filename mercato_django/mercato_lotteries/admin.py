@@ -81,7 +81,7 @@ class LotteryTicketAdmin(admin.ModelAdmin):
 
 @admin.register(WinnerDrawing)
 class WinnerDrawingAdmin(admin.ModelAdmin):
-    list_display = ('lottery', 'winner', 'winning_ticket', 'drawn_at', 'status', 'prize_amount')
-    list_filter = ('status', 'drawn_at')
+    list_display = ('lottery', 'winner', 'winning_ticket', 'drawn_at', 'status', 'prize_amount', 'is_shipped', 'shipped_at')
+    list_filter = ('status', 'is_shipped', 'drawn_at')
     search_fields = ('lottery__title', 'winner__email', 'winner__username', 'winning_ticket__ticket_number')
-    readonly_fields = ('drawn_at',)
+    readonly_fields = ('drawn_at', 'shipped_at')
