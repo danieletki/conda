@@ -81,9 +81,12 @@ def perform_manual_draw(lottery_id, initiated_by_user_id):
     Chiamato dal venditore dalla view initiate_draw().
     """
     try:
+        logger.info(f"[DRAW] Starting manual draw for lottery {lottery_id} by user {initiated_by_user_id}")
+        
         with transaction.atomic():
             # Lock the lottery row to prevent concurrent extractions
             lottery = Lottery.objects.select_for_update().get(id=lottery_id)
+            logger.info(f"[DRAW] Lottery found: {lottery.title}")
 
             # Validare che lottery.seller.id == initiated_by_user_id (solo il venditore può estrarre)
             if lottery.seller.id != initiated_by_user_id:
@@ -92,21 +95,23 @@ def perform_manual_draw(lottery_id, initiated_by_user_id):
 
             # Check if drawing already exists
             if WinnerDrawing.objects.filter(lottery=lottery).exists():
-                logger.warning(f"Drawing already exists for lottery {lottery.id}")
+                logger.warning(f"[DRAW] Drawing already exists for lottery {lottery.id}")
                 return
 
-            logger.info(f"Processing manual extraction for lottery {lottery.title} ({lottery.id}) by user {initiated_by_user_id}")
+            logger.info(f"[DRAW] Processing manual extraction for lottery {lottery.title} ({lottery.id}) by user {initiated_by_user_id}")
 
             # Get all paid tickets
             paid_tickets = lottery.tickets.filter(payment_status='completed')
+            logger.info(f"[DRAW] Paid tickets found: {paid_tickets.count()}")
 
             if not paid_tickets.exists():
-                logger.warning(f"No paid tickets for lottery {lottery.id}. Cannot extract winner.")
+                logger.warning(f"[DRAW] No paid tickets for lottery {lottery.id}. Cannot extract winner.")
                 return
 
             # Selezionare casualmente uno tra i biglietti pagati
             winning_ticket = random.choice(list(paid_tickets))
             winner = winning_ticket.buyer
+            logger.info(f"[DRAW] Winner extracted: {winner.email}, Ticket: {winning_ticket.ticket_number}")
 
             # Creare record WinnerDrawing
             drawing = WinnerDrawing.objects.create(
@@ -116,22 +121,27 @@ def perform_manual_draw(lottery_id, initiated_by_user_id):
                 status='completed',
                 prize_amount=lottery.item_value
             )
+            logger.info(f"[DRAW] WinnerDrawing created: {drawing.id}")
 
             # Aggiornare lotteria: lottery.status = 'drawn' e salvare
             lottery.status = 'drawn'
             lottery.save()
+            logger.info(f"[DRAW] Lottery status updated to 'drawn'")
 
-            logger.info(f"Manual winner extracted for lottery {lottery.id}: {winner.email}")
+            logger.info(f"[DRAW] Manual winner extracted for lottery {lottery.id}: {winner.email}")
 
             # Inviare email
             try:
                 send_lottery_won_email(winning_ticket, winner, drawing)
                 send_seller_winner_notification_email(lottery, winner, winning_ticket, drawing)
+                logger.info(f"[DRAW] Emails sent to {winner.email} and seller")
             except Exception as e:
-                logger.error(f"Error sending emails for manual draw of lottery {lottery.id}: {e}")
+                logger.error(f"[DRAW] Error sending emails for manual draw of lottery {lottery.id}: {e}")
+
+            logger.info(f"[DRAW] Manual draw completed successfully for lottery {lottery.id}")
 
     except Lottery.DoesNotExist:
-        logger.error(f"Lottery {lottery_id} not found")
+        logger.error(f"[DRAW] Lottery {lottery_id} not found")
     except Exception as e:
-        logger.error(f"Error performing manual draw for lottery {lottery_id}: {e}")
+        logger.error(f"[DRAW] Error performing manual draw for lottery {lottery_id}: {e}", exc_info=True)
         raise
