@@ -287,6 +287,10 @@ class WinnerDrawing(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     prize_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     
+    # Shipping tracking fields
+    is_shipped = models.BooleanField(default=False, help_text="Se il premio è stato spedito al vincitore")
+    shipped_at = models.DateTimeField(null=True, blank=True, help_text="Data e ora di spedizione del premio")
+    
     class Meta:
         ordering = ['-drawn_at']
         indexes = [
@@ -295,6 +299,19 @@ class WinnerDrawing(models.Model):
     
     def __str__(self):
         return f"Estrazione {self.lottery.title} - {self.drawn_at}"
+    
+    def mark_as_shipped(self):
+        """Marca il premio come spedito e registra la data/ora"""
+        self.is_shipped = True
+        self.shipped_at = timezone.now()
+        self.save()
+    
+    def get_status_display(self):
+        """Ritorna lo status di spedizione formattato"""
+        if self.is_shipped:
+            return f"Spedito il {self.shipped_at.strftime('%d %b %Y alle %H:%M')}"
+        else:
+            return "In attesa di spedizione"
 
 
 # Django signals

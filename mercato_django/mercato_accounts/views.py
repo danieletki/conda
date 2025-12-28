@@ -167,6 +167,16 @@ def buyer_dashboard(request):
         )['total']
     )
     
+    # Get winner drawings for won tickets to show shipping status
+    won_drawings_info = {}
+    if status_filter in ['won', 'all']:
+        won_drawings = WinnerDrawing.objects.filter(
+            winner=request.user,
+            status='completed'
+        )
+        for wd in won_drawings:
+            won_drawings_info[wd.winning_ticket_id] = wd
+    
     context = {
         'tickets': tickets,
         'status_filter': status_filter,
@@ -174,6 +184,7 @@ def buyer_dashboard(request):
         'won_tickets': won_count,
         'total_spent': total_spent,
         'now': now,
+        'won_drawings_info': won_drawings_info,
     }
     
     return render(request, 'accounts/buyer_dashboard.html', context)
@@ -469,6 +480,7 @@ def seller_lottery_detail(request, lottery_id):
         'sales_counts': sales_counts,
         'daily_revenues': daily_revenues,
         'winner': winner,
+        'winner_drawing': winner_drawing,
         'can_draw': can_draw,
         'hours_remaining': hours_remaining,
         'minutes_remaining': minutes_remaining,
@@ -634,3 +646,30 @@ def seller_kyc_settings(request):
     }
     
     return render(request, 'accounts/seller_kyc_settings.html', context)
+
+
+@login_required
+def mark_winner_as_shipped(request, drawing_id):
+    """
+    Marca il premio di un vincitore come spedito.
+    Disponibile solo per il venditore della lotteria.
+    """
+    drawing = get_object_or_404(WinnerDrawing, id=drawing_id)
+    
+    # Validazione: WinnerDrawing esiste (già verificato con get_object_or_404)
+    
+    # Validazione: L'utente è il venditore della lotteria
+    if request.user != drawing.lottery.seller:
+        messages.error(request, 'Non hai il permesso di segnare questo premio come spedito.')
+        return redirect('accounts:seller_dashboard')
+    
+    # Validazione: Non è già stato spedito
+    if drawing.is_shipped:
+        messages.warning(request, 'Questo premio è già stato segnato come spedito.')
+        return redirect('accounts:seller_lottery_detail', lottery_id=drawing.lottery.id)
+    
+    # Se valido: marca come spedito
+    drawing.mark_as_shipped()
+    messages.success(request, 'Premio segnato come spedito!')
+    
+    return redirect('accounts:seller_lottery_detail', lottery_id=drawing.lottery.id)

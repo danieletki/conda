@@ -11,3 +11,14 @@ def split(value, arg):
     if not value:
         return []
     return value.split(arg)
+
+
+@register.filter(name='get_item')
+def get_item(dictionary, key):
+    """
+    Gets an item from a dictionary by key.
+    Usage: {{ dictionary|get_item:key }}
+    """
+    if dictionary is None:
+        return None
+    return dictionary.get(key)
