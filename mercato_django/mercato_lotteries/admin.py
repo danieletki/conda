@@ -85,3 +85,9 @@ class WinnerDrawingAdmin(admin.ModelAdmin):
     list_filter = ('status', 'is_shipped', 'drawn_at')
     search_fields = ('lottery__title', 'winner__email', 'winner__username', 'winning_ticket__ticket_number')
     readonly_fields = ('drawn_at', 'shipped_at')
+
+    raw_id_fields = ('lottery', 'winner', 'winning_ticket')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.order_by('-drawn_at')
