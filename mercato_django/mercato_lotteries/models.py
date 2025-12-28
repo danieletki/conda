@@ -223,8 +223,8 @@ class Lottery(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['seller', 'status']),
+            models.Index(fields=['status', 'created_at'], name='mercato_lo_status_7a9a5f_idx'),
+            models.Index(fields=['seller', 'status'], name='mercato_lo_seller_709b23_idx'),
         ]
 
 
@@ -290,7 +290,7 @@ class WinnerDrawing(models.Model):
     class Meta:
         ordering = ['-drawn_at']
         indexes = [
-            models.Index(fields=['status', 'drawn_at']),
+            models.Index(fields=['status', 'drawn_at'], name='mercato_lo_status_e2b8f1_idx'),
         ]
     
     def __str__(self):
