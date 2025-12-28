@@ -399,6 +399,9 @@ def seller_lottery_detail(request, lottery_id):
     """
     Detail view for a specific lottery with sales analytics
     """
+    # Initialize winner_drawing to None to avoid UnboundLocalError
+    winner_drawing = None
+    
     lottery = get_object_or_404(
         Lottery.objects.annotate(
             tickets_sold_count=Count('tickets', filter=Q(tickets__payment_status='completed')),
