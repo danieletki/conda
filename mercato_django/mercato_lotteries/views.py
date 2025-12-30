@@ -1,22 +1,24 @@
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.db.models import Count, Q
-from django.shortcuts import get_object_or_404, render, redirect
-from django.http import JsonResponse
-from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 from datetime import timedelta
 
-from .models import Lottery, LotteryTicket, WinnerDrawing
-from .tasks import perform_manual_draw
-from mercato_payments.models import PaymentTransaction, PaymentSettings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
 from mercato_accounts.models import Profile
+from mercato_payments.models import PaymentTransaction
+
+from .models import Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing
+from .tasks import perform_manual_draw
 
 
 def lottery_list(request):
     lotteries_qs = (
         Lottery.objects.filter(status='active')
+        .select_related('regione', 'categoria')
         .annotate(
             tickets_sold_count=Count(
                 'tickets', filter=Q(tickets__payment_status='completed')
@@ -29,6 +31,25 @@ def lottery_list(request):
     if query:
         lotteries_qs = lotteries_qs.filter(title__icontains=query)
 
+    regione_id = request.GET.get('regione_id')
+    if regione_id and str(regione_id).isdigit():
+        lotteries_qs = lotteries_qs.filter(regione_id=int(regione_id))
+    else:
+        regione_id = None
+
+    categoria_id = request.GET.get('categoria_id')
+    if categoria_id and str(categoria_id).isdigit():
+        lotteries_qs = lotteries_qs.filter(categoria_id=int(categoria_id))
+    else:
+        categoria_id = None
+
+    regioni = Regione.objects.order_by('id')
+    categorie = Categoria.objects.order_by('name')
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    querystring = params.urlencode()
+
     paginator = Paginator(lotteries_qs, 12)
     page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -39,15 +60,18 @@ def lottery_list(request):
             'page_obj': page_obj,
             'lotteries': page_obj.object_list,
             'query': query,
-            'categories': [],
-            'selected_category': None,
+            'regioni': regioni,
+            'categorie': categorie,
+            'selected_regione_id': int(regione_id) if regione_id else None,
+            'selected_categoria_id': int(categoria_id) if categoria_id else None,
+            'querystring': querystring,
         },
     )
 
 
 def lottery_detail(request, lottery_id):
     lottery = get_object_or_404(
-        Lottery.objects.annotate(
+        Lottery.objects.select_related('regione', 'categoria').annotate(
             tickets_sold_count=Count(
                 'tickets', filter=Q(tickets__payment_status='completed')
             )

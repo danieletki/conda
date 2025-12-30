@@ -1,14 +1,30 @@
 from django import forms
-from django.core.validators import MinValueValidator
-from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from .models import Lottery
+from .models import Categoria, Lottery, Regione
 
 
 class LotteryCreationForm(forms.ModelForm):
     """Form for creating new lotteries with image uploads"""
-    
+
+    regione = forms.ModelChoiceField(
+        label='Regione',
+        required=True,
+        queryset=Regione.objects.none(),
+        empty_label='Seleziona una regione',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        error_messages={'required': 'Seleziona una regione.'},
+    )
+
+    categoria = forms.ModelChoiceField(
+        label='Categoria',
+        required=True,
+        queryset=Categoria.objects.none(),
+        empty_label='Seleziona una categoria',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        error_messages={'required': 'Seleziona una categoria.'},
+    )
+
     image_1_file = forms.ImageField(
         label='Immagine 1 (Principale)',
         required=True,
@@ -45,10 +61,19 @@ class LotteryCreationForm(forms.ModelForm):
     class Meta:
         model = Lottery
         fields = (
-            'title', 'description', 'item_value', 'items_count',
+            'title',
+            'description',
+            'regione',
+            'categoria',
+            'item_value',
+            'items_count',
             'expiration_date',
-            'image_1_file', 'image_2_file', 'image_3_file',
-            'image_1_description', 'image_2_description', 'image_3_description'
+            'image_1_file',
+            'image_2_file',
+            'image_3_file',
+            'image_1_description',
+            'image_2_description',
+            'image_3_description',
         )
         widgets = {
             'title': forms.TextInput(attrs={
@@ -87,8 +112,13 @@ class LotteryCreationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add help text for computed fields
-        self.fields['item_value'].help_text = 'Il prezzo del biglietto verrà calcolato automaticamente: valore / numero biglietti'
+
+        self.fields['regione'].queryset = Regione.objects.order_by('name')
+        self.fields['categoria'].queryset = Categoria.objects.order_by('name')
+
+        self.fields['item_value'].help_text = (
+            'Il prezzo del biglietto verrà calcolato automaticamente: valore / numero biglietti'
+        )
     
     def clean(self):
         cleaned_data = super().clean()

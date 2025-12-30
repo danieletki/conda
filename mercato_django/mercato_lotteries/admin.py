@@ -1,19 +1,122 @@
-from django.contrib import admin
-from .models import Lottery, LotteryTicket, WinnerDrawing
-from .tasks import process_lottery_extraction
-from django.contrib import messages
-from django.utils.translation import ngettext
-from django.utils import timezone
 from datetime import timedelta
+
+from django.contrib import admin, messages
+from django.utils import timezone
+from django.utils.translation import ngettext
+
+from .models import Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing
+from .tasks import process_lottery_extraction
+
+
+@admin.register(Regione)
+class RegioneAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.pk == 1:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def delete_model(self, request, obj):
+        if obj.pk == 1:
+            self.message_user(
+                request,
+                "La regione 'Non Specificato' non può essere eliminata.",
+                level=messages.ERROR,
+            )
+            return
+        return super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        if queryset.filter(pk=1).exists():
+            self.message_user(
+                request,
+                "La regione 'Non Specificato' non può essere eliminata.",
+                level=messages.ERROR,
+            )
+        return super().delete_queryset(request, queryset.exclude(pk=1))
+
+
+@admin.register(Categoria)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
 
 @admin.register(Lottery)
 class LotteryAdmin(admin.ModelAdmin):
-    list_display = ('title', 'seller', 'status', 'items_count', 'tickets_sold', 'can_manually_draw', 'created_at')
-    list_filter = ('status', 'can_manually_draw', 'created_at', 'kyc_completed')
-    search_fields = ('title', 'description', 'seller__email', 'seller__username')
-    readonly_fields = ('tickets_sold', 'ticket_price', 'progress_percent')
+    list_display = (
+        'title',
+        'seller',
+        'regione',
+        'categoria',
+        'status',
+        'items_count',
+        'tickets_sold',
+        'can_manually_draw',
+        'created_at',
+    )
+    list_filter = (
+        'status',
+        'regione',
+        'categoria',
+        'can_manually_draw',
+        'created_at',
+        'kyc_completed',
+    )
+    search_fields = (
+        'title',
+        'description',
+        'seller__email',
+        'seller__username',
+        'regione__name',
+        'categoria__name',
+    )
+    readonly_fields = ('tickets_sold', 'ticket_price', 'progress_percent', 'created_at', 'updated_at')
+    fieldsets = (
+        (
+            None,
+            {
+                'fields': (
+                    'title',
+                    'description',
+                    'regione',
+                    'categoria',
+                    'seller',
+                    'status',
+                    'expiration_date',
+                )
+            },
+        ),
+        (
+            'Valori',
+            {'fields': ('item_value', 'items_count', 'ticket_price')},
+        ),
+        (
+            'Configurazione',
+            {'fields': ('can_manually_draw', 'min_draw_delay_hours', 'kyc_completed')},
+        ),
+        (
+            'Immagini',
+            {
+                'fields': (
+                    'image_1',
+                    'image_1_description',
+                    'image_2',
+                    'image_2_description',
+                    'image_3',
+                    'image_3_description',
+                )
+            },
+        ),
+        (
+            'Metadati',
+            {'fields': ('tickets_sold', 'progress_percent', 'created_at', 'updated_at')},
+        ),
+    )
     actions = ['extract_winner_manually']
-    
+
     @admin.action(description='Estrai vincitore manualmente')
     def extract_winner_manually(self, request, queryset):
         """
