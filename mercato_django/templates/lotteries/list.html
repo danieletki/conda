@@ -5,17 +5,19 @@
 {% block content %}
 <div class="container py-4">
     <div class="row align-items-end g-3 mb-4">
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
             <h1 class="mb-1">
                 <i class="fas fa-ticket-alt me-2"></i>Lotterie Attive
             </h1>
             <p class="text-muted mb-0">Cerca e scopri le lotterie disponibili.</p>
         </div>
 
-        <div class="col-12 col-lg-6">
-            <form method="get" class="d-flex gap-2">
-                <div class="flex-grow-1">
+        <div class="col-12 col-lg-8">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small text-muted mb-1" for="q">Titolo</label>
                     <input
+                        id="q"
                         type="text"
                         name="q"
                         class="form-control"
@@ -24,9 +26,42 @@
                         aria-label="Cerca lotterie"
                     >
                 </div>
-                <button class="btn btn-primary" type="submit">
-                    <i class="fas fa-search me-2"></i>Cerca
-                </button>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="regione_id">Regione</label>
+                    <select id="regione_id" name="regione_id" class="form-select" aria-label="Filtra per regione">
+                        <option value="">Tutte le regioni</option>
+                        {% for regione in regioni %}
+                            <option value="{{ regione.id }}" {% if regione.id == selected_regione_id %}selected{% endif %}>
+                                {{ regione.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="categoria_id">Categoria</label>
+                    <select id="categoria_id" name="categoria_id" class="form-select" aria-label="Filtra per categoria">
+                        <option value="">Tutte le categorie</option>
+                        {% for categoria in categorie %}
+                            <option value="{{ categoria.id }}" {% if categoria.id == selected_categoria_id %}selected{% endif %}>
+                                {{ categoria.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2 d-grid">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search me-2"></i>Cerca
+                    </button>
+                </div>
+
+                {% if query or selected_regione_id or selected_categoria_id %}
+                    <div class="col-12 text-end">
+                        <a href="{% url 'lotteries:list' %}" class="small text-decoration-none">Pulisci filtri</a>
+                    </div>
+                {% endif %}
             </form>
         </div>
     </div>
@@ -40,14 +75,14 @@
             {% endfor %}
         </div>
 
-        {% include 'lotteries/_pagination.html' with page_obj=page_obj query=query %}
+        {% include 'lotteries/_pagination.html' with page_obj=page_obj querystring=querystring %}
     {% else %}
         <div class="text-center py-5">
             <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
             <h3 class="mb-2">Nessuna lotteria trovata</h3>
             <p class="text-muted mb-0">
-                {% if query %}
-                    Nessun risultato per <strong>"{{ query }}"</strong>.
+                {% if query or selected_regione_id or selected_categoria_id %}
+                    Nessun risultato per i filtri selezionati.
                 {% else %}
                     Al momento non ci sono lotterie attive. Torna presto per vedere le nuove opportunità!
                 {% endif %}

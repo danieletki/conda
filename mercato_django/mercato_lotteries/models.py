@@ -1,17 +1,18 @@
-from django.db import models
-from django.core.validators import MinValueValidator
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+import base64
+import logging
+import uuid
+from decimal import Decimal
+from io import BytesIO
+
+from PIL import Image
+
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.db import models
 from django.db.models import signals
 from django.urls import reverse
-from decimal import Decimal
-import base64
-import uuid
-from io import BytesIO
-from PIL import Image
-import logging
-import os
+from django.utils import timezone
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -61,6 +62,26 @@ def compress_image(image_file, max_size=(1024, 1024), quality=85):
         return None
 
 
+class Regione(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Categoria(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Lottery(models.Model):
     """
     Main lottery model with KYC validation and image compression
@@ -75,6 +96,8 @@ class Lottery(models.Model):
     
     title = models.CharField(max_length=200)
     description = models.TextField()
+    regione = models.ForeignKey(Regione, on_delete=models.PROTECT, default=1)
+    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, default=1)
     item_value = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0.01)])
     items_count = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     ticket_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
