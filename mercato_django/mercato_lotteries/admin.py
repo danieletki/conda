@@ -101,11 +101,8 @@ class LotteryAdmin(admin.ModelAdmin):
             'Immagini',
             {
                 'fields': (
-                    'image_1',
                     'image_1_description',
-                    'image_2',
                     'image_2_description',
-                    'image_3',
                     'image_3_description',
                 )
             },
