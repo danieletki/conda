@@ -4,14 +4,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from decimal import Decimal
 
 from mercato_accounts.models import Profile
 from mercato_payments.models import PaymentTransaction
 
-from .models import Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing
+from .models import (
+    Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing,
+    Auction, Bid, AuctionResult
+)
 from .tasks import perform_manual_draw
 
 
@@ -244,3 +248,239 @@ def initiate_draw(request, lottery_id):
     perform_manual_draw.delay(lottery_id, request.user.id)
     messages.success(request, "Estrazione avviata! Il vincitore verrà estratto a breve.")
     return redirect('accounts:seller_lottery_detail', lottery_id=lottery_id)
+
+
+# =====================================================================
+# AUCTION VIEWS
+# =====================================================================
+
+def auction_list(request):
+    """
+    Display list of active auctions
+    """
+    auctions_qs = (
+        Auction.objects.filter(status='active')
+        .select_related('regione', 'categoria', 'seller', 'current_highest_bidder')
+        .annotate(
+            bids_count_annotation=Count(
+                'bids', filter=Q(bids__status='active')
+            )
+        )
+        .order_by('-created_at')
+    )
+
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        auctions_qs = auctions_qs.filter(title__icontains=query)
+
+    regione_id = request.GET.get('regione_id')
+    if regione_id and str(regione_id).isdigit():
+        auctions_qs = auctions_qs.filter(regione_id=int(regione_id))
+    else:
+        regione_id = None
+
+    categoria_id = request.GET.get('categoria_id')
+    if categoria_id and str(categoria_id).isdigit():
+        auctions_qs = auctions_qs.filter(categoria_id=int(categoria_id))
+    else:
+        categoria_id = None
+
+    regioni = Regione.objects.order_by('id')
+    categorie = Categoria.objects.order_by('name')
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    querystring = params.urlencode()
+
+    paginator = Paginator(auctions_qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(
+        request,
+        'lotteries/auction_list.html',
+        {
+            'page_obj': page_obj,
+            'auctions': page_obj.object_list,
+            'query': query,
+            'regioni': regioni,
+            'categorie': categorie,
+            'selected_regione_id': int(regione_id) if regione_id else None,
+            'selected_categoria_id': int(categoria_id) if categoria_id else None,
+            'querystring': querystring,
+        },
+    )
+
+
+def auction_detail(request, auction_id):
+    """
+    Display details for a specific auction
+    """
+    auction = get_object_or_404(
+        Auction.objects.select_related('regione', 'categoria', 'seller', 'current_highest_bidder').annotate(
+            bids_count_annotation=Count(
+                'bids', filter=Q(bids__status='active')
+            )
+        ),
+        id=auction_id,
+    )
+
+    user_bids = []
+    if request.user.is_authenticated:
+        user_bids = (
+            Bid.objects.filter(auction=auction, bidder=request.user)
+            .order_by('-created_at')
+            .all()
+        )
+
+    # Recent bids (last 10 bids, anonymized for non-seller users)
+    recent_bids_qs = Bid.objects.filter(auction=auction, status='active').order_by('-created_at')[:10]
+    recent_bids = []
+    for bid in recent_bids_qs:
+        is_seller_or_owner = (
+            request.user == auction.seller or 
+            request.user == bid.bidder
+        )
+        anonymized_bidder = f"User_{bid.bidder.id:04d}" if not is_seller_or_owner else bid.bidder.username
+        recent_bids.append({
+            'amount': bid.amount,
+            'bidder_anonymized': anonymized_bidder,
+            'created_at': bid.created_at
+        })
+
+    # Seller profile
+    seller_profile = None
+    try:
+        seller_profile = auction.seller.profile
+    except Profile.DoesNotExist:
+        seller_profile = None
+
+    # Calculate seller rating (placeholder - can be enhanced later)
+    seller_rating = 4.8  # Placeholder rating
+    seller_total_sales = Auction.objects.filter(seller=auction.seller, status='completed').count()
+
+    # Check if auction is ending soon (last 5 bids or time)
+    ending_soon_warning = (
+        auction.status == 'active' and
+        auction.auction_end_time and
+        (auction.auction_end_time - timezone.now()) < timedelta(hours=1)
+    )
+
+    current_time = timezone.now()
+
+    return render(
+        request,
+        'lotteries/auction_detail.html',
+        {
+            'auction': auction,
+            'user_bids': user_bids,
+            'recent_bids': recent_bids,
+            'seller_profile': seller_profile,
+            'seller_rating': seller_rating,
+            'seller_total_sales': seller_total_sales,
+            'ending_soon_warning': ending_soon_warning,
+            'now': current_time,
+        },
+    )
+
+
+@login_required
+def place_bid(request, auction_id):
+    """
+    Place a bid on an auction
+    """
+    auction = get_object_or_404(Auction, id=auction_id)
+
+    if auction.status != 'active':
+        messages.error(request, "L'asta non è attiva")
+        return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+    if auction.is_expired:
+        messages.error(request, "L'asta è scaduta")
+        return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+    if request.method == 'POST':
+        try:
+            bid_amount = Decimal(str(request.POST.get('bid_amount', '0')))
+            if bid_amount <= 0:
+                messages.error(request, "L'importo dell'offerta non è valido")
+                return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+            # Place the bid
+            bid = auction.place_bid(request.user, bid_amount)
+
+            # Create payment transaction for bid deposit
+            payment_transaction = PaymentTransaction.objects.create(
+                ticket=None,  # No ticket for auctions
+                amount=bid_amount,
+                status='pending'
+            )
+            payment_transaction.save()
+
+            # Redirect to PayPal payment processing
+            messages.success(request, f"Offerta di {bid_amount:.2f} EUR piazzata con successo!")
+            return redirect('payments:process_payment', ticket_id=str(bid.id))
+
+        except (ValueError, ValidationError) as e:
+            messages.error(request, f"Errore durante l'elaborazione dell'offerta: {str(e)}")
+
+    return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+
+@login_required
+def my_bids(request):
+    """
+    Display user's bids
+    """
+    bids = (
+        Bid.objects.filter(bidder=request.user)
+        .select_related('auction')
+        .order_by('-created_at')
+    )
+    return render(request, 'lotteries/my_bids.html', {'bids': bids})
+
+
+@login_required
+def close_auction(request, auction_id):
+    """
+    Close an auction manually (seller only)
+    """
+    auction = get_object_or_404(Auction, id=auction_id)
+
+    if request.user != auction.seller:
+        messages.error(request, "Non hai accesso a questa asta")
+        return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+    try:
+        result = auction.close_auction()
+        messages.success(
+            request,
+            f"Asta chiusa! " +
+            (f"Vincitore: {result.winner.username} - {result.final_price:.2f} EUR" if result.winner else "Nessun vincitore")
+        )
+    except ValidationError as e:
+        messages.error(request, str(e))
+
+    return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+
+@login_required
+def cancel_auction(request, auction_id):
+    """
+    Cancel an auction (seller only)
+    """
+    auction = get_object_or_404(Auction, id=auction_id)
+
+    if request.user != auction.seller:
+        messages.error(request, "Non hai accesso a questa asta")
+        return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '')
+        try:
+            auction.cancel_auction(reason)
+            messages.success(request, "Asta annullata con successo")
+        except ValidationError as e:
+            messages.error(request, str(e))
+        return redirect('lotteries:auction_detail', auction_id=auction_id)
+
+    return render(request, 'lotteries/cancel_auction.html', {'auction': auction})
