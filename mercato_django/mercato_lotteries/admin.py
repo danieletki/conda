@@ -4,7 +4,10 @@ from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.translation import ngettext
 
-from .models import Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing
+from .models import (
+    Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing,
+    Auction, Bid, AuctionResult
+)
 from .tasks import process_lottery_extraction
 
 
@@ -191,3 +194,237 @@ class WinnerDrawingAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.order_by('-drawn_at')
+
+
+# =====================================================================
+# AUCTION ADMIN
+# =====================================================================
+
+@admin.register(Auction)
+class AuctionAdmin(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'seller',
+        'regione',
+        'categoria',
+        'status',
+        'starting_price',
+        'current_highest_bid',
+        'bids_count',
+        'auction_end_time',
+        'created_at',
+    )
+    list_filter = (
+        'status',
+        'regione',
+        'categoria',
+        'auto_close_on_end_time',
+        'created_at',
+        'kyc_completed',
+    )
+    search_fields = (
+        'title',
+        'description',
+        'seller__email',
+        'seller__username',
+        'regione__name',
+        'categoria__name',
+    )
+    readonly_fields = (
+        'bids_count',
+        'current_highest_bid',
+        'current_highest_bidder',
+        'minimum_next_bid',
+        'reserve_met',
+        'is_expired',
+        'time_remaining',
+        'created_at',
+        'updated_at',
+        'closed_at',
+    )
+    fieldsets = (
+        (
+            None,
+            {
+                'fields': (
+                    'title',
+                    'description',
+                    'regione',
+                    'categoria',
+                    'seller',
+                    'status',
+                )
+            },
+        ),
+        (
+            'Valori Asta',
+            {
+                'fields': (
+                    'item_value',
+                    'starting_price',
+                    'reserve_price',
+                    'bid_increment',
+                )
+            },
+        ),
+        (
+            'Tempi',
+            {
+                'fields': (
+                    'auction_end_time',
+                    'auto_close_on_end_time',
+                )
+            },
+        ),
+        (
+            'Configurazione',
+            {'fields': ('kyc_completed',)},
+        ),
+        (
+            'Immagini',
+            {
+                'fields': (
+                    'image_1_description',
+                    'image_2_description',
+                    'image_3_description',
+                )
+            },
+        ),
+        (
+            'Info Offerte',
+            {
+                'fields': (
+                    'current_highest_bid',
+                    'current_highest_bidder',
+                    'minimum_next_bid',
+                    'reserve_met',
+                    'bids_count',
+                )
+            },
+        ),
+        (
+            'Metadati',
+            {
+                'fields': (
+                    'is_expired',
+                    'time_remaining',
+                    'created_at',
+                    'updated_at',
+                    'closed_at',
+                )
+            },
+        ),
+    )
+    actions = ['close_expired', 'cancel_selected']
+
+    @admin.action(description='Chiudi le aste scadute')
+    def close_expired(self, request, queryset):
+        """
+        Close auctions that have expired
+        """
+        count = 0
+        for auction in queryset:
+            if auction.status != 'active':
+                self.message_user(
+                    request,
+                    f"Asta {auction.title} ignorata: non è attiva.",
+                    level=messages.WARNING
+                )
+                continue
+            
+            if not auction.is_expired:
+                self.message_user(
+                    request,
+                    f"Asta {auction.title} ignorata: non è scaduta.",
+                    level=messages.WARNING
+                )
+                continue
+            
+            try:
+                auction.close_auction()
+                count += 1
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"Errore chiudendo asta {auction.title}: {str(e)}",
+                    level=messages.ERROR
+                )
+        
+        if count > 0:
+            self.message_user(request, ngettext(
+                '%d asta chiusa.',
+                '%d aste chiuse.',
+                count,
+            ) % count, messages.SUCCESS)
+
+    @admin.action(description='Annulla le aste selezionate')
+    def cancel_selected(self, request, queryset):
+        """
+        Cancel selected auctions
+        """
+        count = 0
+        for auction in queryset:
+            if auction.status not in ['active', 'paused']:
+                self.message_user(
+                    request,
+                    f"Asta {auction.title} ignorata: non può essere annullata.",
+                    level=messages.WARNING
+                )
+                continue
+            
+            try:
+                auction.cancel_auction("Cancellata via admin")
+                count += 1
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"Errore annullando asta {auction.title}: {str(e)}",
+                    level=messages.ERROR
+                )
+        
+        if count > 0:
+            self.message_user(request, ngettext(
+                '%d asta annullata.',
+                '%d aste annullate.',
+                count,
+            ) % count, messages.SUCCESS)
+
+
+@admin.register(Bid)
+class BidAdmin(admin.ModelAdmin):
+    list_display = ('id', 'auction', 'bidder', 'amount', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = (
+        'id',
+        'auction__title',
+        'bidder__email',
+        'bidder__username',
+    )
+    readonly_fields = ('created_at', 'updated_at', 'outbid_at', 'refunded_at')
+    raw_id_fields = ('auction', 'bidder')
+
+
+@admin.register(AuctionResult)
+class AuctionResultAdmin(admin.ModelAdmin):
+    list_display = (
+        'auction',
+        'winner',
+        'winning_bid',
+        'final_price',
+        'status',
+        'total_bids',
+        'is_shipped',
+        'determined_at',
+    )
+    list_filter = ('status', 'is_shipped', 'determined_at')
+    search_fields = (
+        'auction__title',
+        'winner__email',
+        'winner__username',
+    )
+    readonly_fields = ('determined_at', 'shipped_at')
+    raw_id_fields = ('auction', 'winner', 'winning_bid')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.order_by('-determined_at')

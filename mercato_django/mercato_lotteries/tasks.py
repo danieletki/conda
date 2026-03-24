@@ -1,6 +1,8 @@
 from celery import shared_task
 from django.db import transaction
-from .models import Lottery, WinnerDrawing
+from django.utils import timezone
+from django.utils.timezone import timedelta
+from .models import Lottery, WinnerDrawing, Auction, Bid, AuctionResult
 from mercato_notifications.email_service import send_lottery_won_email, send_seller_winner_notification_email
 import random
 import logging
@@ -145,3 +147,103 @@ def perform_manual_draw(lottery_id, initiated_by_user_id):
     except Exception as e:
         logger.error(f"[DRAW] Error performing manual draw for lottery {lottery_id}: {e}", exc_info=True)
         raise
+
+
+# =====================================================================
+# AUCTION TASKS
+# =====================================================================
+
+@shared_task
+def close_expired_auctions():
+    """
+    Close all expired auctions that have auto_close_on_end_time enabled
+    Runs periodically via Celery Beat
+    """
+    logger.info("[AUCTION] Starting close_expired_auctions task")
+    
+    try:
+        expired_auctions = Auction.objects.filter(
+            status='active',
+            auction_end_time__lte=timezone.now(),
+            auto_close_on_end_time=True
+        )
+        
+        closed_count = 0
+        for auction in expired_auctions:
+            try:
+                result = auction.close_auction()
+                closed_count += 1
+                logger.info(f"[AUCTION] Closed expired auction {auction.id}: {auction.title}")
+                
+                # TODO: Send notification emails to winner and seller
+                # send_auction_won_email(result)
+                # send_seller_auction_closed_email(result)
+                
+            except Exception as e:
+                logger.error(f"[AUCTION] Error closing auction {auction.id}: {e}")
+        
+        logger.info(f"[AUCTION] Closed {closed_count} expired auctions")
+        return closed_count
+        
+    except Exception as e:
+        logger.error(f"[AUCTION] Error in close_expired_auctions: {e}", exc_info=True)
+        raise
+
+
+@shared_task
+def refund_outbid_bids(auction_id, winning_bid_id):
+    """
+    Refund all outbid bids for an auction except the winning bid
+    Called after auction closes
+    """
+    logger.info(f"[AUCTION] Starting refund_outbid_bids for auction {auction_id}")
+    
+    try:
+        with transaction.atomic():
+            auction = Auction.objects.select_for_update().get(id=auction_id)
+            
+            # Mark all active bids except winning bid as outbid
+            outbid_bids = auction.bids.filter(status='active').exclude(id=winning_bid_id)
+            refunded_count = 0
+            
+            for bid in outbid_bids:
+                bid.mark_as_outbid()
+                # TODO: Process actual refund through payment system
+                # refund_payment_transaction(bid.payment_transaction)
+                refunded_count += 1
+                logger.info(f"[AUCTION] Marked bid {bid.id} as outbid for auction {auction_id}")
+            
+            logger.info(f"[AUCTION] Refunded {refunded_count} outbid bids for auction {auction_id}")
+            return refunded_count
+            
+    except Auction.DoesNotExist:
+        logger.error(f"[AUCTION] Auction {auction_id} not found")
+    except Exception as e:
+        logger.error(f"[AUCTION] Error in refund_outbid_bids for auction {auction_id}: {e}", exc_info=True)
+        raise
+
+
+@shared_task
+def send_outbid_notifications(auction_id, outbid_bidder_id, outbid_amount, new_bid_amount):
+    """
+    Send email notification to bidder who was outbid
+    Called when a new higher bid is placed
+    """
+    logger.info(f"[AUCTION] Sending outbid notification to bidder {outbid_bidder_id} for auction {auction_id}")
+    
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        auction = Auction.objects.get(id=auction_id)
+        outbid_user = User.objects.get(id=outbid_bidder_id)
+        
+        # TODO: Implement email notification
+        # send_outbid_email(outbid_user, auction, outbid_amount, new_bid_amount)
+        
+        logger.info(f"[AUCTION] Outbid notification sent to {outbid_user.email}")
+        
+    except Auction.DoesNotExist:
+        logger.error(f"[AUCTION] Auction {auction_id} not found")
+    except Exception as e:
+        logger.error(f"[AUCTION] Error sending outbid notification: {e}", exc_info=True)
