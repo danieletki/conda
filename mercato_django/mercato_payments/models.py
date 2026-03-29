@@ -103,16 +103,42 @@ class Payment(models.Model):
 
 class LotteryPayment(models.Model):
     """
-    Payment records specifically for lottery tickets
+    DEPRECATED: Legacy lottery payment model for data migration.
     """
     payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='lottery_payment')
     lottery = models.ForeignKey('mercato_lotteries.Lottery', on_delete=models.CASCADE)
     ticket_count = models.PositiveIntegerField()
-    ticket_ids = models.JSONField(default=list)  # Store ticket IDs as array
+    ticket_ids = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'mercato_payments_lotterypayment'
+        managed = False
 
     def __str__(self):
         return f"Lottery Payment: {self.payment.id} - {self.ticket_count} tickets"
+
+
+class BidPayment(models.Model):
+    """
+    Payment records specifically for auction bids
+    """
+    PAYMENT_TYPE_CHOICES = [
+        ('deposit', 'Deposito'),
+        ('final', 'Pagamento Finale'),
+    ]
+    
+    payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='bid_payment')
+    bid = models.ForeignKey('mercato_lotteries.Bid', on_delete=models.CASCADE, related_name='payments')
+    auction = models.ForeignKey('mercato_lotteries.Auction', on_delete=models.CASCADE)
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, default='deposit')
+    deposit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    is_refunded = models.BooleanField(default=False)
+    refunded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Bid Payment: {self.payment.id} - {self.payment_type} - €{self.deposit_amount}"
 
 
 class Refund(models.Model):

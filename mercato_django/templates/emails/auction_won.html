@@ -1,0 +1,48 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+    <h1 style="color: #28a745; font-size: 28px;">🎉 Congratulazioni! Hai Vinto! 🎉</h1>
+    <p style="font-size: 18px; color: #333;">Sei il vincitore dell'asta!</p>
+</div>
+
+<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h2 style="color: #333; margin-top: 0;">{{ auction.title }}</h2>
+    
+    <table style="width: 100%; margin-top: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #666;">Importo finale:</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 18px; color: #28a745;">€ {{ final_price }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #666;">Data chiusura:</td>
+            <td style="padding: 8px 0; text-align: right;">{{ auction.closed_at|date:"d M Y H:i" }}</td>
+        </tr>
+    </table>
+</div>
+
+<div style="padding: 20px 0;">
+    <p>Ciao {{ winner.first_name|default:winner.username }},</p>
+    
+    <p>Siamo felici di informarti che hai vinto l'asta! Ecco cosa devi fare:</p>
+    
+    <ol style="line-height: 1.8;">
+        <li>Completa il pagamento finale se necessario</li>
+        <li>Fornisci l'indirizzo di spedizione</li>
+        <li>Attendi la conferma di spedizione dal venditore</li>
+    </ol>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}{% url 'accounts:buyer_dashboard' %}" 
+           style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Vai alla Dashboard
+        </a>
+    </div>
+</div>
+
+<div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <p style="margin: 0; color: #856404;">
+        <strong>Nota:</strong> Il venditore ti contatterà presto per organizzare la spedizione del premio.
+    </p>
+</div>
+{% endblock %}

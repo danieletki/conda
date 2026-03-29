@@ -260,6 +260,18 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_WORKER_PREFETCH_MULTIPLIER = config('CELERY_WORKER_PREFETCH_MULTIPLIER', default=1, cast=int)
 CELERY_WORKER_MAX_TASKS_PER_CHILD = config('CELERY_WORKER_MAX_TASKS_PER_CHILD', default=1000, cast=int)
 
+# Celery Beat Schedule - Auction tasks
+CELERY_BEAT_SCHEDULE = {
+    'close-expired-auctions': {
+        'task': 'mercato_lotteries.tasks.close_expired_auctions',
+        'schedule': 300.0,  # Run every 5 minutes
+    },
+    'notify-auctions-ending-soon': {
+        'task': 'mercato_lotteries.tasks.notify_auctions_ending_soon',
+        'schedule': 3600.0,  # Run every hour
+    },
+}
+
 # Logging Configuration
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)

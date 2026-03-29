@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Aste - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-end g-3 mb-4">
+        <div class="col-12 col-lg-4">
+            <h1 class="mb-1">
+                <i class="fas fa-gavel me-2"></i>Aste Attive
+            </h1>
+            <p class="text-muted mb-0">Partecipa alle aste e aggiudicati i migliori oggetti.</p>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small text-muted mb-1" for="q">Titolo</label>
+                    <input
+                        id="q"
+                        type="text"
+                        name="q"
+                        class="form-control"
+                        placeholder="Cerca per titolo..."
+                        value="{{ query }}"
+                        aria-label="Cerca aste"
+                    >
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="regione_id">Regione</label>
+                    <select id="regione_id" name="regione_id" class="form-select" aria-label="Filtra per regione">
+                        <option value="">Tutte le regioni</option>
+                        {% for regione in regioni %}
+                            <option value="{{ regione.id }}" {% if regione.id == selected_regione_id %}selected{% endif %}>
+                                {{ regione.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted mb-1" for="categoria_id">Categoria</label>
+                    <select id="categoria_id" name="categoria_id" class="form-select" aria-label="Filtra per categoria">
+                        <option value="">Tutte le categorie</option>
+                        {% for categoria in categorie %}
+                            <option value="{{ categoria.id }}" {% if categoria.id == selected_categoria_id %}selected{% endif %}>
+                                {{ categoria.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2 d-grid">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search me-2"></i>Cerca
+                    </button>
+                </div>
+
+                {% if query or selected_regione_id or selected_categoria_id %}
+                    <div class="col-12 text-end">
+                        <a href="{% url 'lotteries:auction_list' %}" class="small text-decoration-none">Pulisci filtri</a>
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {% if auctions %}
+        <div class="row g-3">
+            {% for auction in auctions %}
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <div class="card h-100 shadow-sm auction-card">
+                        {% if auction.main_image_data_uri %}
+                            <img src="{{ auction.main_image_data_uri }}" class="card-img-top" alt="{{ auction.title }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-{{ auction.get_status_color }}">{{ auction.get_status_display }}</span>
+                                {% if auction.is_ending_soon %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>In scadenza</span>
+                                {% endif %}
+                            </div>
+                            
+                            <h5 class="card-title text-truncate">{{ auction.title }}</h5>
+                            <p class="card-text text-muted small text-truncate">{{ auction.description|truncatewords:15 }}</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    <small class="text-muted d-block">Offerta attuale</small>
+                                    <strong class="text-primary fs-5">€ {{ auction.current_price }}</strong>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">Offerte</small>
+                                    <span class="badge bg-secondary">{{ auction.total_bids }}</span>
+                                </div>
+                            </div>
+                            
+                            {% if auction.auction_end_time %}
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-hourglass-half me-1"></i>
+                                        Scade: {{ auction.auction_end_time|date:"d M Y H:i" }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'lotteries:auction_detail' auction.id %}" class="btn btn-primary w-100">
+                                <i class="fas fa-gavel me-2"></i>Partecipa
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% include 'lotteries/_pagination.html' with page_obj=page_obj querystring=querystring %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-gavel fa-3x text-muted mb-3"></i>
+            <h3 class="mb-2">Nessuna asta trovata</h3>
+            <p class="text-muted mb-0">
+                {% if query or selected_regione_id or selected_categoria_id %}
+                    Nessun risultato per i filtri selezionati.
+                {% else %}
+                    Al momento non ci sono aste attive. Torna presto per vedere le nuove opportunità!
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

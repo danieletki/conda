@@ -1,0 +1,52 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+    <h1 style="color: #ffc107; font-size: 28px;">⏰ L'Asta Sta Per Chiudersi!</h1>
+    <p style="font-size: 18px; color: #666;">Non perdere l'opportunità</p>
+</div>
+
+<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #ffc107;">
+    <h2 style="color: #856404; margin-top: 0;">{{ auction.title }}</h2>
+    
+    <table style="width: 100%; margin-top: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #856404;">Prezzo attuale:</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 18px; color: #856404;">€ {{ current_price }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #856404;">Tempo rimanente:</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 18px; color: #dc3545;">
+                {{ hours_remaining }}h {{ minutes_remaining }}m
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #856404;">Chiusura:</td>
+            <td style="padding: 8px 0; text-align: right;">{{ auction_end_time|date:"d M Y H:i" }}</td>
+        </tr>
+    </table>
+</div>
+
+<div style="padding: 20px 0;">
+    <p>Ciao {{ bidder.first_name|default:bidder.username }},</p>
+    
+    <p>Hai piazzato un'offerta su questa asta e manca poco alla chiusura!</p>
+    
+    <div style="background: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0; color: #721c24;">
+            <strong>⚠️ Attenzione:</strong> Se qualcuno offre di più prima della chiusura, potresti perdere l'asta!
+        </p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}{% url 'lotteries:auction_detail' auction.id %}" 
+           style="background: #dc3545; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">
+            Offri Ora!
+        </a>
+    </div>
+    
+    <p style="color: #666; font-size: 14px; text-align: center;">
+        Non lasciarti sfuggire questa opportunità!
+    </p>
+</div>
+{% endblock %}
