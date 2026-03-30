@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ auction.title }} - Asta - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Left Column: Images -->
+        <div class="col-lg-6 mb-4">
+            <div id="auctionCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner rounded shadow">
+                    {% if auction.main_image_data_uri %}
+                        <div class="carousel-item active">
+                            <img src="{{ auction.main_image_data_uri }}" class="d-block w-100" alt="{{ auction.image_1_description|default:auction.title }}" style="height: 400px; object-fit: cover;">
+                        </div>
+                    {% endif %}
+                    {% if auction.image_2_data_uri %}
+                        <div class="carousel-item {% if not auction.main_image_data_uri %}active{% endif %}">
+                            <img src="{{ auction.image_2_data_uri }}" class="d-block w-100" alt="{{ auction.image_2_description|default:auction.title }}" style="height: 400px; object-fit: cover;">
+                        </div>
+                    {% endif %}
+                    {% if auction.image_3_data_uri %}
+                        <div class="carousel-item {% if not auction.main_image_data_uri and not auction.image_2_data_uri %}active{% endif %}">
+                            <img src="{{ auction.image_3_data_uri }}" class="d-block w-100" alt="{{ auction.image_3_description|default:auction.title }}" style="height: 400px; object-fit: cover;">
+                        </div>
+                    {% endif %}
+                </div>
+                {% if auction.image_2_data_uri or auction.image_3_data_uri %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#auctionCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#auctionCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column: Auction Info -->
+        <div class="col-lg-6">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <span class="badge bg-{{ auction.get_status_color }} mb-2">{{ auction.get_status_display }}</span>
+                    <h1 class="h2 mb-0">{{ auction.title }}</h1>
+                </div>
+                {% if ending_soon_warning %}
+                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>In scadenza!</span>
+                {% endif %}
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <small class="text-muted d-block">Offerta Attuale</small>
+                            <span class="h2 text-primary mb-0">€ {{ auction.current_price }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Prossima Offerta Minima</small>
+                            <span class="h4 text-success mb-0">€ {{ auction.next_minimum_bid }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if auction.can_place_bid %}
+                {% if user.is_authenticated %}
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <i class="fas fa-gavel me-2"></i>Piazza la tua offerta
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'lotteries:place_bid' auction.id %}">
+                                {% csrf_token %}
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" name="bid_amount" class="form-control form-control-lg" 
+                                           min="{{ auction.next_minimum_bid }}" step="0.01" required
+                                           placeholder="Minimo: € {{ auction.next_minimum_bid }}">
+                                    <button class="btn btn-primary btn-lg" type="submit">
+                                        <i class="fas fa-gavel me-2"></i>Offri
+                                    </button>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Incremento minimo: € {{ auction.bid_increment }}
+                                </small>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <a href="{% url 'accounts:login' %}" class="alert-link">Accedi</a> per partecipare all'asta.
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-secondary">
+                    <i class="fas fa-lock me-2"></i>Questa asta non accetta più offerte.
+                </div>
+            {% endif %}
+
+            <!-- Auction Details -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-2"></i>Dettagli Asta
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Prezzo di partenza</td>
+                            <td class="text-end">€ {{ auction.starting_price }}</td>
+                        </tr>
+                        {% if auction.reserve_price %}
+                        <tr>
+                            <td class="text-muted">Prezzo di riserva</td>
+                            <td class="text-end">€ {{ auction.reserve_price }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Incremento minimo</td>
+                            <td class="text-end">€ {{ auction.bid_increment }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Totale offerte</td>
+                            <td class="text-end">{{ auction.total_bids }}</td>
+                        </tr>
+                        {% if auction.auction_end_time %}
+                        <tr>
+                            <td class="text-muted">Scadenza</td>
+                            <td class="text-end">{{ auction.auction_end_time|date:"d M Y H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-align-left me-2"></i>Descrizione
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ auction.description|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bids -->
+    {% if recent_bids %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-history me-2"></i>Ultime Offerte
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Offerente</th>
+                                <th class="text-end">Importo</th>
+                                <th class="text-end">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bid in recent_bids %}
+                            <tr>
+                                <td>{{ bid.bidder_anonymized }}</td>
+                                <td class="text-end fw-bold">€ {{ bid.amount }}</td>
+                                <td class="text-end text-muted">{{ bid.created_at|date:"d M Y H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

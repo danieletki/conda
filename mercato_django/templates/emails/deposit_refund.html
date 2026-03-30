@@ -1,0 +1,46 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+    <h1 style="color: #28a745; font-size: 28px;">💰 Rimborso Effettuato</h1>
+    <p style="font-size: 18px; color: #666;">Il tuo deposito è stato rimborsato</p>
+</div>
+
+<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h2 style="color: #333; margin-top: 0;">{{ auction.title }}</h2>
+    
+    <table style="width: 100%; margin-top: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #666;">Importo rimborsato:</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 18px; color: #28a745;">€ {{ refund_amount }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #666;">Data rimborso:</td>
+            <td style="padding: 8px 0; text-align: right;">{{ refunded_at|date:"d M Y H:i" }}</td>
+        </tr>
+    </table>
+</div>
+
+<div style="padding: 20px 0;">
+    <p>Ciao {{ bidder.first_name|default:bidder.username }},</p>
+    
+    <p>L'asta si è conclusa e purtroppo non sei risultato il vincitore. Il tuo deposito è stato rimborsato.</p>
+    
+    <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0; color: #155724;">
+            <strong>Buone notizie!</strong> Il rimborso è stato elaborato e dovresti vedere l'importo accreditato sul tuo metodo di pagamento originale entro 3-5 giorni lavorativi.
+        </p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}{% url 'lotteries:auction_list' %}" 
+           style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Scopri Altre Aste
+        </a>
+    </div>
+    
+    <p style="color: #666; font-size: 14px;">
+        Grazie per aver partecipato all'asta. Non arrenderti, ci sono sempre nuove opportunità!
+    </p>
+</div>
+{% endblock %}

@@ -346,3 +346,138 @@ def send_expiration_reminder_email(user, lottery, time_remaining, notification_t
         user=user,
         priority='normal'
     )
+
+
+# =====================================================================
+# AUCTION EMAIL FUNCTIONS
+# =====================================================================
+
+def send_auction_won_email(bid, winner, auction_result):
+    """Send auction win notification to winner"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='auction_won',
+        recipient_email=winner.email,
+        subject=f'🎉 HAI VINTO L\'ASTA! {bid.auction.title}',
+        context={
+            'bid': bid,
+            'auction': bid.auction,
+            'winner': winner,
+            'auction_result': auction_result,
+            'final_price': auction_result.final_price
+        },
+        user=winner,
+        priority='urgent'
+    )
+
+
+def send_seller_auction_closed_email(auction, winner, final_price):
+    """Send auction closed notification to seller"""
+    email_service = EmailService()
+    
+    context = {
+        'auction': auction,
+        'seller': auction.seller,
+        'winner': winner,
+        'final_price': final_price,
+        'total_bids': auction.bids.filter(status='active').count()
+    }
+    
+    if not winner:
+        subject = f'Asta Conclusa - Nessun Vincitore: {auction.title}'
+    else:
+        subject = f'Asta Conclusa - Vincitore: {auction.title} 🏆'
+    
+    return email_service.send_email(
+        template_name='seller_auction_closed',
+        recipient_email=auction.seller.email,
+        subject=subject,
+        context=context,
+        user=auction.seller,
+        priority='high'
+    )
+
+
+def send_outbid_email(previous_bid, new_bid, auction):
+    """Send outbid notification to previous highest bidder"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='outbid_notification',
+        recipient_email=previous_bid.bidder.email,
+        subject=f'Sei stato superato! {auction.title} 📈',
+        context={
+            'previous_bid': previous_bid,
+            'new_bid': new_bid,
+            'auction': auction,
+            'new_amount': new_bid.amount,
+            'your_amount': previous_bid.amount
+        },
+        user=previous_bid.bidder,
+        priority='normal'
+    )
+
+
+def send_bid_placed_confirmation_email(bid):
+    """Send bid placement confirmation to bidder"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='bid_placed',
+        recipient_email=bid.bidder.email,
+        subject=f'Offerta Piazzata: {bid.auction.title} ✅',
+        context={
+            'bid': bid,
+            'auction': bid.auction,
+            'bidder': bid.bidder,
+            'amount': bid.amount
+        },
+        user=bid.bidder,
+        priority='normal'
+    )
+
+
+def send_deposit_refund_email(bid):
+    """Send deposit refund notification to bidder"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='deposit_refund',
+        recipient_email=bid.bidder.email,
+        subject=f'Rimborso Deposito: {bid.auction.title} 💰',
+        context={
+            'bid': bid,
+            'auction': bid.auction,
+            'bidder': bid.bidder,
+            'refund_amount': bid.deposit_amount,
+            'refunded_at': bid.refunded_at
+        },
+        user=bid.bidder,
+        priority='normal'
+    )
+
+
+def send_auction_ending_soon_email(bidder, auction):
+    """Send auction ending soon reminder"""
+    email_service = EmailService()
+    
+    time_remaining = auction.auction_end_time - timezone.now()
+    hours_remaining = int(time_remaining.total_seconds() // 3600)
+    minutes_remaining = int((time_remaining.total_seconds() % 3600) // 60)
+    
+    return email_service.send_email(
+        template_name='auction_ending_soon',
+        recipient_email=bidder.email,
+        subject=f'L\'asta sta per chiudersi! {auction.title} ⏰',
+        context={
+            'bidder': bidder,
+            'auction': auction,
+            'hours_remaining': hours_remaining,
+            'minutes_remaining': minutes_remaining,
+            'auction_end_time': auction.auction_end_time,
+            'current_price': auction.current_price
+        },
+        user=bidder,
+        priority='high'
+    )
