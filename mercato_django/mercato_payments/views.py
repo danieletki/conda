@@ -9,7 +9,7 @@ from decimal import Decimal
 import json
 import logging
 from .models import PaymentTransaction, PaymentSettings
-from mercato_lotteries.models import LotteryTicket
+from mercato_lotteries.models import Bid, LotteryTicket
 from .paypal import PayPalClient, process_paypal_ipn, refund_ticket_payment
 
 logger = logging.getLogger(__name__)

@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Fai un'Offerta - MercatoPro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="mb-4">
+                <i class="fas fa-gavel me-2"></i>Fai un'Offerta
+            </h1>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ auction.title }}</h5>
+                    <p class="text-muted">{{ auction.description|truncatewords:30 }}</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small">Valore stimato</div>
+                            <div class="fs-5 fw-bold">€{{ auction.item_value }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small">Prezzo di partenza</div>
+                            <div class="fs-5 fw-bold">€{{ auction.starting_price }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small">Offerta attuale</div>
+                            <div class="fs-5 fw-bold text-success">€{{ auction.current_price }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small">Incremento minimo</div>
+                            <div class="fs-5 fw-bold">€{{ auction.bid_increment }}</div>
+                        </div>
+                    </div>
+
+                    {% if auction.auction_end_time %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Termine:</strong> {{ auction.auction_end_time|date:"d/m/Y H:i" }}
+                        {% if auction.time_remaining %}
+                            <span class="ms-2">({{ auction.time_remaining|floatformat:0 }} minuti rimanenti)</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <form method="post" class="card">
+                {% csrf_token %}
+                <div class="card-body">
+                    <h5 class="card-title">Inserisci la tua offerta</h5>
+                    
+                    <div class="mb-3">
+                        <label for="bid_amount" class="form-label">Importo offerta (€)</label>
+                        <input type="number" class="form-control form-control-lg" 
+                               id="bid_amount" name="bid_amount" 
+                               step="0.01" min="{{ min_bid }}" 
+                               placeholder="Minimo: €{{ min_bid }}" required>
+                        <div class="form-text">
+                            Offerta minima: €{{ min_bid }} (incremento di €{{ auction.bid_increment }})
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Facendo un'offerta, ti impegni a pagare l'importo offerto se risulti il vincitore.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-gavel me-2"></i>Conferma Offerta
+                        </button>
+                        <a href="{% url 'lotteries:detail' auction.id %}" class="btn btn-outline-secondary">
+                            Annulla
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Info Asta</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="text-muted small">Venditore</div>
+                        <div>{{ auction.seller.username }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="text-muted small">Totale offerte</div>
+                        <div>{{ auction.bids_count }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="text-muted small">Partecipanti</div>
+                        <div>{{ auction.unique_bidders_count }}</div>
+                    </div>
+                    {% if auction.reserve_price %}
+                    <div class="mb-3">
+                        <div class="text-muted small">Prezzo riserva</div>
+                        <div>€{{ auction.reserve_price }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
