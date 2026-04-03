@@ -330,13 +330,13 @@ def send_lottery_lost_email(ticket, winner, drawing):
 
 
 def send_expiration_reminder_email(user, lottery, time_remaining, notification_type):
-    """Send lottery expiration reminder"""
+    """Send auction expiration reminder"""
     email_service = EmailService()
     
     return email_service.send_email(
         template_name='expiration_reminder',
         recipient_email=user.email,
-        subject=f'Promemoria: {lottery.title} sta per scadere ⏰',
+        subject=f'Promemoria: {lottery.title} sta per chiudersi ⏰',
         context={
             'user': user,
             'lottery': lottery,
@@ -344,6 +344,101 @@ def send_expiration_reminder_email(user, lottery, time_remaining, notification_t
             'notification_type': notification_type
         },
         user=user,
+        priority='normal'
+    )
+
+
+# Auction-specific email functions
+
+def send_auction_won_email(bid, winner, auction_result):
+    """Send auction win notification to winner"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='auction_won',
+        recipient_email=winner.email,
+        subject=f'🎉 HAI VINTO L\'ASTA! {bid.auction.title}',
+        context={
+            'bid': bid,
+            'auction': bid.auction,
+            'winner': winner,
+            'auction_result': auction_result
+        },
+        user=winner,
+        priority='urgent'
+    )
+
+
+def send_seller_auction_closed_email(auction, winner, auction_result):
+    """Send auction closed notification to seller"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='seller_auction_closed',
+        recipient_email=auction.seller.email,
+        subject=f'Asta Chiusa: {auction.title} 🏆',
+        context={
+            'auction': auction,
+            'seller': auction.seller,
+            'winner': winner,
+            'auction_result': auction_result
+        },
+        user=auction.seller,
+        priority='high'
+    )
+
+
+def send_outbid_email(previous_bid, new_bid, auction):
+    """Send outbid notification to previous highest bidder"""
+    email_service = EmailService()
+    
+    if previous_bid.status != 'outbid':
+        return
+    
+    return email_service.send_email(
+        template_name='outbid_notification',
+        recipient_email=previous_bid.bidder.email,
+        subject=f'Sei stato superato! {auction.title} 💰',
+        context={
+            'previous_bid': previous_bid,
+            'new_bid': new_bid,
+            'auction': auction
+        },
+        user=previous_bid.bidder,
+        priority='normal'
+    )
+
+
+def send_bid_placed_confirmation_email(bid):
+    """Send bid placement confirmation to bidder"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='bid_placed',
+        recipient_email=bid.bidder.email,
+        subject=f'Offerta registrata: {bid.auction.title} ✅',
+        context={
+            'bid': bid,
+            'auction': bid.auction
+        },
+        user=bid.bidder,
+        priority='normal'
+    )
+
+
+def send_deposit_refund_email(bid):
+    """Send deposit refund notification to outbid user"""
+    email_service = EmailService()
+    
+    return email_service.send_email(
+        template_name='deposit_refund',
+        recipient_email=bid.bidder.email,
+        subject=f'Rembroso offerta: {bid.auction.title} 💵',
+        context={
+            'bid': bid,
+            'auction': bid.auction
+        },
+        user=bid.bidder,
         priority='normal'
     )
 

@@ -1,14 +1,9 @@
-from datetime import timedelta
-
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.translation import ngettext
 
-from .models import (
-    Categoria, Lottery, LotteryTicket, Regione, WinnerDrawing,
-    Auction, Bid, AuctionResult
-)
-from .tasks import process_lottery_extraction
+from .models import Categoria, Auction, Bid, Regione, AuctionResult
+from .tasks import close_auction
 
 
 @admin.register(Regione)
@@ -21,25 +16,6 @@ class RegioneAdmin(admin.ModelAdmin):
             return False
         return super().has_delete_permission(request, obj)
 
-    def delete_model(self, request, obj):
-        if obj.pk == 1:
-            self.message_user(
-                request,
-                "La regione 'Non Specificato' non può essere eliminata.",
-                level=messages.ERROR,
-            )
-            return
-        return super().delete_model(request, obj)
-
-    def delete_queryset(self, request, queryset):
-        if queryset.filter(pk=1).exists():
-            self.message_user(
-                request,
-                "La regione 'Non Specificato' non può essere eliminata.",
-                level=messages.ERROR,
-            )
-        return super().delete_queryset(request, queryset.exclude(pk=1))
-
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -47,384 +23,59 @@ class CategoriaAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-@admin.register(Lottery)
-class LotteryAdmin(admin.ModelAdmin):
-    list_display = (
-        'title',
-        'seller',
-        'regione',
-        'categoria',
-        'status',
-        'items_count',
-        'tickets_sold',
-        'can_manually_draw',
-        'created_at',
-    )
-    list_filter = (
-        'status',
-        'regione',
-        'categoria',
-        'can_manually_draw',
-        'created_at',
-        'kyc_completed',
-    )
-    search_fields = (
-        'title',
-        'description',
-        'seller__email',
-        'seller__username',
-        'regione__name',
-        'categoria__name',
-    )
-    readonly_fields = ('tickets_sold', 'ticket_price', 'progress_percent', 'created_at', 'updated_at')
-    fieldsets = (
-        (
-            None,
-            {
-                'fields': (
-                    'title',
-                    'description',
-                    'regione',
-                    'categoria',
-                    'seller',
-                    'status',
-                    'expiration_date',
-                )
-            },
-        ),
-        (
-            'Valori',
-            {'fields': ('item_value', 'items_count', 'ticket_price')},
-        ),
-        (
-            'Configurazione',
-            {'fields': ('can_manually_draw', 'min_draw_delay_hours', 'kyc_completed')},
-        ),
-        (
-            'Immagini',
-            {
-                'fields': (
-                    'image_1_description',
-                    'image_2_description',
-                    'image_3_description',
-                )
-            },
-        ),
-        (
-            'Metadati',
-            {'fields': ('tickets_sold', 'progress_percent', 'created_at', 'updated_at')},
-        ),
-    )
-    actions = ['extract_winner_manually']
-
-    @admin.action(description='Estrai vincitore manualmente')
-    def extract_winner_manually(self, request, queryset):
-        """
-        Manually trigger winner extraction for eligible lotteries.
-        Eligibility criteria:
-        - Manual draw is enabled (can_manually_draw=True)
-        - Minimum draw delay has passed since creation
-        - No drawing exists yet
-        """
-        count = 0
-        for lottery in queryset:
-            # Check if manual drawing is enabled
-            if not lottery.can_manually_draw:
-                self.message_user(
-                    request, 
-                    f"Lotteria {lottery.title} ignorata: l'estrazione manuale non è abilitata.", 
-                    level=messages.WARNING
-                )
-                continue
-            
-            # Check if minimum draw delay has passed
-            min_draw_time = lottery.created_at + timedelta(hours=lottery.min_draw_delay_hours)
-            if timezone.now() < min_draw_time:
-                self.message_user(
-                    request, 
-                    f"Lotteria {lottery.title} ignorata: è necessario attendere {lottery.min_draw_delay_hours}h dalla creazione.", 
-                    level=messages.WARNING
-                )
-                continue
-            
-            # Check if drawing already exists
-            if lottery.drawings.exists():
-                self.message_user(
-                    request, 
-                    f"Lotteria {lottery.title} ignorata: l'estrazione è già stata eseguita.", 
-                    level=messages.WARNING
-                )
-                continue
-            
-            # Check if there are any completed tickets
-            if not lottery.tickets.filter(payment_status='completed').exists():
-                self.message_user(
-                    request, 
-                    f"Lotteria {lottery.title} ignorata: non ci sono biglietti pagati.", 
-                    level=messages.WARNING
-                )
-                continue
-            
-            # All checks passed - trigger extraction
-            process_lottery_extraction.delay(lottery.id)
-            count += 1
-        
-        if count > 0:
-            self.message_user(request, ngettext(
-                '%d estrazione avviata.',
-                '%d estrazioni avviate.',
-                count,
-            ) % count, messages.SUCCESS)
-
-@admin.register(LotteryTicket)
-class LotteryTicketAdmin(admin.ModelAdmin):
-    list_display = ('ticket_number', 'lottery', 'buyer', 'payment_status', 'purchased_at')
-    list_filter = ('payment_status', 'purchased_at')
-    search_fields = ('ticket_number', 'lottery__title', 'buyer__email', 'buyer__username')
-
-@admin.register(WinnerDrawing)
-class WinnerDrawingAdmin(admin.ModelAdmin):
-    list_display = ('lottery', 'winner', 'winning_ticket', 'drawn_at', 'status', 'prize_amount', 'is_shipped', 'shipped_at')
-    list_filter = ('status', 'is_shipped', 'drawn_at')
-    search_fields = ('lottery__title', 'winner__email', 'winner__username', 'winning_ticket__ticket_number')
-    readonly_fields = ('drawn_at', 'shipped_at')
-
-    raw_id_fields = ('lottery', 'winner', 'winning_ticket')
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.order_by('-drawn_at')
-
-
-# =====================================================================
-# AUCTION ADMIN
-# =====================================================================
-
 @admin.register(Auction)
 class AuctionAdmin(admin.ModelAdmin):
     list_display = (
-        'title',
-        'seller',
-        'regione',
-        'categoria',
-        'status',
-        'starting_price',
-        'current_highest_bid',
-        'bids_count',
-        'auction_end_time',
-        'created_at',
+        'title', 'seller', 'regione', 'categoria', 'status',
+        'starting_price', 'current_price', 'auction_end_time', 'created_at',
     )
-    list_filter = (
-        'status',
-        'regione',
-        'categoria',
-        'auto_close_on_end_time',
-        'created_at',
-        'kyc_completed',
-    )
-    search_fields = (
-        'title',
-        'description',
-        'seller__email',
-        'seller__username',
-        'regione__name',
-        'categoria__name',
-    )
-    readonly_fields = (
-        'bids_count',
-        'current_highest_bid',
-        'current_highest_bidder',
-        'minimum_next_bid',
-        'reserve_met',
-        'is_expired',
-        'time_remaining',
-        'created_at',
-        'updated_at',
-        'closed_at',
-    )
+    list_filter = ('status', 'regione', 'categoria', 'created_at', 'kyc_completed')
+    search_fields = ('title', 'description', 'seller__email', 'seller__username', 'regione__name', 'categoria__name')
+    readonly_fields = ('created_at', 'updated_at', 'current_price', 'bids_count', 'unique_bidders_count')
     fieldsets = (
-        (
-            None,
-            {
-                'fields': (
-                    'title',
-                    'description',
-                    'regione',
-                    'categoria',
-                    'seller',
-                    'status',
-                )
-            },
-        ),
-        (
-            'Valori Asta',
-            {
-                'fields': (
-                    'item_value',
-                    'starting_price',
-                    'reserve_price',
-                    'bid_increment',
-                )
-            },
-        ),
-        (
-            'Tempi',
-            {
-                'fields': (
-                    'auction_end_time',
-                    'auto_close_on_end_time',
-                )
-            },
-        ),
-        (
-            'Configurazione',
-            {'fields': ('kyc_completed',)},
-        ),
-        (
-            'Immagini',
-            {
-                'fields': (
-                    'image_1_description',
-                    'image_2_description',
-                    'image_3_description',
-                )
-            },
-        ),
-        (
-            'Info Offerte',
-            {
-                'fields': (
-                    'current_highest_bid',
-                    'current_highest_bidder',
-                    'minimum_next_bid',
-                    'reserve_met',
-                    'bids_count',
-                )
-            },
-        ),
-        (
-            'Metadati',
-            {
-                'fields': (
-                    'is_expired',
-                    'time_remaining',
-                    'created_at',
-                    'updated_at',
-                    'closed_at',
-                )
-            },
-        ),
+        (None, {'fields': ('title', 'description', 'regione', 'categoria', 'seller', 'status')}),
+        ('Valori Asta', {'fields': ('item_value', 'starting_price', 'reserve_price', 'bid_increment', 'auction_end_time')}),
+        ('Configurazione', {'fields': ('kyc_completed',)}),
+        ('Immagini', {'fields': ('image_1_description', 'image_2_description', 'image_3_description')}),
+        ('Statistiche', {'fields': ('current_price', 'bids_count', 'unique_bidders_count', 'created_at', 'updated_at')}),
     )
-    actions = ['close_expired', 'cancel_selected']
+    actions = ['close_auction_manually']
 
-    @admin.action(description='Chiudi le aste scadute')
-    def close_expired(self, request, queryset):
-        """
-        Close auctions that have expired
-        """
+    @admin.action(description='Chiudi asta manualmente')
+    def close_auction_manually(self, request, queryset):
         count = 0
         for auction in queryset:
             if auction.status != 'active':
-                self.message_user(
-                    request,
-                    f"Asta {auction.title} ignorata: non è attiva.",
-                    level=messages.WARNING
-                )
+                self.message_user(request, f"Asta {auction.title} ignorata: non è attiva.", messages.WARNING)
                 continue
-            
-            if not auction.is_expired:
-                self.message_user(
-                    request,
-                    f"Asta {auction.title} ignorata: non è scaduta.",
-                    level=messages.WARNING
-                )
+            if not auction.bids.exists():
+                self.message_user(request, f"Asta {auction.title} ignorata: non ci sono offerte.", messages.WARNING)
                 continue
-            
-            try:
-                auction.close_auction()
-                count += 1
-            except Exception as e:
-                self.message_user(
-                    request,
-                    f"Errore chiudendo asta {auction.title}: {str(e)}",
-                    level=messages.ERROR
-                )
+            close_auction.delay(auction.id)
+            count += 1
         
         if count > 0:
-            self.message_user(request, ngettext(
-                '%d asta chiusa.',
-                '%d aste chiuse.',
-                count,
-            ) % count, messages.SUCCESS)
-
-    @admin.action(description='Annulla le aste selezionate')
-    def cancel_selected(self, request, queryset):
-        """
-        Cancel selected auctions
-        """
-        count = 0
-        for auction in queryset:
-            if auction.status not in ['active', 'paused']:
-                self.message_user(
-                    request,
-                    f"Asta {auction.title} ignorata: non può essere annullata.",
-                    level=messages.WARNING
-                )
-                continue
-            
-            try:
-                auction.cancel_auction("Cancellata via admin")
-                count += 1
-            except Exception as e:
-                self.message_user(
-                    request,
-                    f"Errore annullando asta {auction.title}: {str(e)}",
-                    level=messages.ERROR
-                )
-        
-        if count > 0:
-            self.message_user(request, ngettext(
-                '%d asta annullata.',
-                '%d aste annullate.',
-                count,
-            ) % count, messages.SUCCESS)
+            self.message_user(request, ngettext('%d asta in chiusura.', '%d aste in chiusura.', count) % count, messages.SUCCESS)
 
 
 @admin.register(Bid)
 class BidAdmin(admin.ModelAdmin):
-    list_display = ('id', 'auction', 'bidder', 'amount', 'status', 'created_at')
-    list_filter = ('status', 'created_at')
-    search_fields = (
-        'id',
-        'auction__title',
-        'bidder__email',
-        'bidder__username',
-    )
-    readonly_fields = ('created_at', 'updated_at', 'outbid_at', 'refunded_at')
-    raw_id_fields = ('auction', 'bidder')
+    list_display = ('id', 'auction', 'bidder', 'amount', 'status', 'is_highest', 'placed_at')
+    list_filter = ('status', 'is_highest', 'placed_at')
+    search_fields = ('auction__title', 'bidder__email', 'bidder__username')
+    readonly_fields = ('placed_at',)
 
 
 @admin.register(AuctionResult)
 class AuctionResultAdmin(admin.ModelAdmin):
-    list_display = (
-        'auction',
-        'winner',
-        'winning_bid',
-        'final_price',
-        'status',
-        'total_bids',
-        'is_shipped',
-        'determined_at',
-    )
-    list_filter = ('status', 'is_shipped', 'determined_at')
-    search_fields = (
-        'auction__title',
-        'winner__email',
-        'winner__username',
-    )
-    readonly_fields = ('determined_at', 'shipped_at')
+    list_display = ('auction', 'winner', 'winning_bid', 'final_price', 'closed_at', 'status', 'is_shipped')
+    list_filter = ('status', 'is_shipped', 'closed_at')
+    search_fields = ('auction__title', 'winner__email', 'winner__username')
+    readonly_fields = ('closed_at', 'shipped_at')
     raw_id_fields = ('auction', 'winner', 'winning_bid')
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.order_by('-determined_at')
+
+# Backwards compatibility aliases
+LotteryAdmin = AuctionAdmin
+LotteryTicketAdmin = BidAdmin
+WinnerDrawingAdmin = AuctionResultAdmin

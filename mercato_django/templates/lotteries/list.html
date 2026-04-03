@@ -1,30 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}Lotterie - MercatoPro{% endblock %}
+{% block title %}Aste - MercatoPro{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="row align-items-end g-3 mb-4">
         <div class="col-12 col-lg-4">
             <h1 class="mb-1">
-                <i class="fas fa-ticket-alt me-2"></i>Lotterie Attive
+                <i class="fas fa-gavel me-2"></i>Aste Attive
             </h1>
-            <p class="text-muted mb-0">Cerca e scopri le lotterie disponibili.</p>
+            <p class="text-muted mb-0">Partecipa alle aste e aggiudicati i migliori oggetti.</p>
         </div>
 
         <div class="col-12 col-lg-8">
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label small text-muted mb-1" for="q">Titolo</label>
-                    <input
-                        id="q"
-                        type="text"
-                        name="q"
-                        class="form-control"
-                        placeholder="Cerca per titolo..."
-                        value="{{ query }}"
-                        aria-label="Cerca lotterie"
-                    >
+                    <input id="q" type="text" name="q" class="form-control" placeholder="Cerca per titolo..." value="{{ query }}" aria-label="Cerca aste">
                 </div>
 
                 <div class="col-6 col-md-3">
@@ -66,9 +58,9 @@
         </div>
     </div>
 
-    {% if lotteries %}
+    {% if auctions %}
         <div class="row g-2">
-            {% for lottery in lotteries %}
+            {% for lottery in auctions %}
                 <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                     {% include 'lotteries/_lottery_card.html' with lottery=lottery compact=True %}
                 </div>
@@ -78,15 +70,9 @@
         {% include 'lotteries/_pagination.html' with page_obj=page_obj querystring=querystring %}
     {% else %}
         <div class="text-center py-5">
-            <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
-            <h3 class="mb-2">Nessuna lotteria trovata</h3>
-            <p class="text-muted mb-0">
-                {% if query or selected_regione_id or selected_categoria_id %}
-                    Nessun risultato per i filtri selezionati.
-                {% else %}
-                    Al momento non ci sono lotterie attive. Torna presto per vedere le nuove opportunità!
-                {% endif %}
-            </p>
+            <i class="fas fa-gavel fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Nessuna asta attiva</h4>
+            <p class="text-muted">Non ci sono aste disponibili in questo momento.</p>
         </div>
     {% endif %}
 </div>
