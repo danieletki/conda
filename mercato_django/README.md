@@ -353,11 +353,15 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ## 🤝 Contributing
 
+Per contribuire al progetto, segui questi passaggi:
+
 1. Fork il repository
 2. Crea feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Apri una Pull Request
+
+Per maggiori dettagli sul workflow Git, vedi la **[GIT_WORKFLOW_GUIDE.md](GIT_WORKFLOW_GUIDE.md)**.
 
 ## 📄 License
 
